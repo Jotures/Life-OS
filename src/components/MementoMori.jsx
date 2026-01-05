@@ -4,6 +4,10 @@ import { Calendar } from 'lucide-react';
 const MementoMori = ({ fechaNacimiento, onSetFechaNacimiento, mementoData }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [inputDate, setInputDate] = useState(fechaNacimiento || '');
+    const [showFuture, setShowFuture] = useState(false);
+
+    // Default: show years 0-30, Expanded: show 0-70
+    const renderLimit = showFuture ? 70 : 31;
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -21,10 +25,12 @@ const MementoMori = ({ fechaNacimiento, onSetFechaNacimiento, mementoData }) => 
         return (
             <div className="flex flex-col">
                 {Array.from({ length: totalYears }).map((_, yearIndex) => {
+                    // Hide years beyond the render limit
+                    if (yearIndex >= renderLimit) return null;
+
                     const yearNum = yearIndex + 1;
-                    // Gap every 10 years (not on the last year 70)
                     const isDecade = yearNum % 10 === 0 && yearNum !== 70;
-                    const rowClass = `flex flex-row items-center justify-center gap-[2px] ${isDecade ? 'mb-6' : 'mb-[2px]'}`;
+                    const rowClass = `flex flex-row items-center justify-center gap-[2px] ${isDecade ? 'mb-4' : 'mb-[1px]'}`;
 
                     return (
                         <div key={yearIndex} className={rowClass}>
@@ -53,8 +59,8 @@ const MementoMori = ({ fechaNacimiento, onSetFechaNacimiento, mementoData }) => 
                                 );
                             })}
 
-                            {/* AGE LABEL (Integrated in the row for perfect alignment) */}
-                            <div className="w-8 ml-3 text-xs text-zinc-500 flex items-center justify-start">
+                            {/* LABEL CONTAINER - exists in EVERY row for consistent height */}
+                            <div className="w-6 ml-2 text-[10px] leading-none text-zinc-500 flex items-center h-2.5">
                                 {yearNum % 5 === 0 ? yearNum : ''}
                             </div>
                         </div>
@@ -122,9 +128,17 @@ const MementoMori = ({ fechaNacimiento, onSetFechaNacimiento, mementoData }) => 
                     )}
 
                     {/* Grid */}
-                    <div className="mb-6 overflow-x-auto">
+                    <div className="mb-4 overflow-x-auto">
                         {renderGrid()}
                     </div>
+
+                    {/* Toggle button at bottom */}
+                    <button
+                        onClick={() => setShowFuture(!showFuture)}
+                        className="mb-6 text-xs text-zinc-600 hover:text-zinc-400 transition-colors underline decoration-dotted"
+                    >
+                        {showFuture ? '▲ Ocultar futuro lejano' : '▼ Ver vida completa (70 años)'}
+                    </button>
 
                     {/* Legend */}
                     <div className="flex items-center gap-6 text-xs text-zinc-500 mb-4">
