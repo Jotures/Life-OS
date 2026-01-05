@@ -258,17 +258,38 @@ export const useLifeOS = () => {
     const getMementoMoriData = useCallback(() => {
         if (!fechaNacimiento) return null;
 
-        const nacimiento = parseISO(fechaNacimiento);
-        const ahora = new Date();
-        const semanasVividas = differenceInWeeks(ahora, nacimiento);
+        const birth = parseISO(fechaNacimiento);
+        const now = new Date();
         const totalYears = 70;
-        const totalSemanas = totalYears * 52; // 70 years in weeks
+        const totalSemanas = totalYears * 52;
+
+        // 1. Calculate Age (completed years)
+        let age = now.getFullYear() - birth.getFullYear();
+        const m = now.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
+            age--;
+        }
+
+        // 2. Get last birthday date
+        const lastBirthday = new Date(birth);
+        lastBirthday.setFullYear(birth.getFullYear() + age);
+
+        // 3. Calculate weeks passed since last birthday
+        const msPerWeek = 1000 * 60 * 60 * 24 * 7;
+        const weeksSinceBirthday = Math.floor((now - lastBirthday) / msPerWeek);
+
+        // 4. Total index for the grid (clamp weeks to 0-51)
+        const validWeeks = Math.min(Math.max(weeksSinceBirthday, 0), 51);
+        const currentWeekIndex = Math.min((age * 52) + validWeeks, totalSemanas);
+
+        // Calculate percentage based on actual grid position
+        const porcentajeVivido = ((currentWeekIndex / totalSemanas) * 100).toFixed(1);
 
         return {
-            currentWeekIndex: Math.min(semanasVividas, totalSemanas),
+            currentWeekIndex,
             totalSemanas,
             totalYears,
-            porcentajeVivido: ((semanasVividas / totalSemanas) * 100).toFixed(1)
+            porcentajeVivido
         };
     }, [fechaNacimiento]);
 
