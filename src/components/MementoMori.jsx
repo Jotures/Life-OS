@@ -16,35 +16,60 @@ const MementoMori = ({ fechaNacimiento, onSetFechaNacimiento, mementoData }) => 
     const renderGrid = () => {
         if (!mementoData) return null;
 
-        const { semanasVividas, totalSemanas } = mementoData;
-        const squares = [];
+        const { currentWeekIndex, totalYears } = mementoData;
 
-        // Create 80 rows (years) x 52 columns (weeks)
-        for (let i = 0; i < totalSemanas; i++) {
-            const isPast = i < semanasVividas;
-            const isPresent = i === semanasVividas;
+        return (
+            <div className="flex flex-col">
+                {Array.from({ length: totalYears }).map((_, yearIndex) => {
+                    const yearNum = yearIndex + 1;
+                    // Gap every 10 years (not on the last year 70)
+                    const isDecade = yearNum % 10 === 0 && yearNum !== 70;
+                    const rowClass = `flex flex-row items-center justify-center gap-[2px] ${isDecade ? 'mb-6' : 'mb-[2px]'}`;
 
-            squares.push(
-                <div
-                    key={i}
-                    className={`w-1.5 h-1.5 rounded-[1px] ${isPresent
-                            ? 'bg-zinc-100 animate-pulse-glow'
-                            : isPast
-                                ? 'bg-zinc-600'
-                                : 'border border-zinc-700'
-                        }`}
-                />
-            );
-        }
+                    return (
+                        <div key={yearIndex} className={rowClass}>
+                            {/* 52 WEEKS */}
+                            {Array.from({ length: 52 }).map((_, weekIndex) => {
+                                const iterationWeekIndex = yearIndex * 52 + weekIndex;
 
-        return squares;
+                                // 3-state logic
+                                let squareClass = '';
+                                if (iterationWeekIndex < currentWeekIndex) {
+                                    // PAST (Vivido)
+                                    squareClass = 'bg-zinc-700';
+                                } else if (iterationWeekIndex === currentWeekIndex) {
+                                    // PRESENT (Hoy)
+                                    squareClass = 'bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]';
+                                } else {
+                                    // FUTURE (Por vivir)
+                                    squareClass = 'border border-zinc-600 bg-transparent';
+                                }
+
+                                return (
+                                    <div
+                                        key={weekIndex}
+                                        className={`w-2.5 h-2.5 rounded-[1px] ${squareClass}`}
+                                    />
+                                );
+                            })}
+
+                            {/* AGE LABEL (Integrated in the row for perfect alignment) */}
+                            <div className="w-8 ml-3 text-xs text-zinc-500 flex items-center justify-start">
+                                {yearNum % 5 === 0 ? yearNum : ''}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
     };
 
     return (
         <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-zinc-100">
-                    Memento Mori
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-zinc-100 tracking-[0.3em] uppercase">
+                    MEMENTO&nbsp;&nbsp;MORI
                 </h2>
                 {fechaNacimiento && (
                     <button
@@ -92,33 +117,27 @@ const MementoMori = ({ fechaNacimiento, onSetFechaNacimiento, mementoData }) => 
                 <div>
                     {mementoData && (
                         <p className="text-zinc-500 text-sm mb-4">
-                            Has vivido el <span className="text-zinc-300 font-medium">{mementoData.porcentajeVivido}%</span> de tu vida (asumiendo 80 años)
+                            Has vivido el <span className="text-zinc-300 font-medium">{mementoData.porcentajeVivido}%</span> de tu vida (asumiendo 70 años)
                         </p>
                     )}
 
-                    {/* The grid */}
-                    <div
-                        className="grid gap-[2px] mb-6 overflow-hidden"
-                        style={{
-                            gridTemplateColumns: 'repeat(52, minmax(0, 1fr))',
-                            maxHeight: '320px'
-                        }}
-                    >
+                    {/* Grid */}
+                    <div className="mb-6 overflow-x-auto">
                         {renderGrid()}
                     </div>
 
                     {/* Legend */}
-                    <div className="flex items-center gap-4 text-xs text-zinc-500 mb-4">
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 bg-zinc-600 rounded-[1px]" />
+                    <div className="flex items-center gap-6 text-xs text-zinc-500 mb-4">
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-zinc-700 rounded-[1px]" />
                             <span>Vivido</span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 bg-zinc-100 rounded-[1px]" />
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-white rounded-[1px] shadow-[0_0_6px_rgba(255,255,255,0.6)]" />
                             <span>Hoy</span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 border border-zinc-700 rounded-[1px]" />
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 border border-zinc-600 rounded-[1px]" />
                             <span>Por vivir</span>
                         </div>
                     </div>

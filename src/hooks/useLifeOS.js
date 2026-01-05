@@ -261,11 +261,13 @@ export const useLifeOS = () => {
         const nacimiento = parseISO(fechaNacimiento);
         const ahora = new Date();
         const semanasVividas = differenceInWeeks(ahora, nacimiento);
-        const totalSemanas = 80 * 52; // 80 years in weeks
+        const totalYears = 70;
+        const totalSemanas = totalYears * 52; // 70 years in weeks
 
         return {
-            semanasVividas: Math.min(semanasVividas, totalSemanas),
+            currentWeekIndex: Math.min(semanasVividas, totalSemanas),
             totalSemanas,
+            totalYears,
             porcentajeVivido: ((semanasVividas / totalSemanas) * 100).toFixed(1)
         };
     }, [fechaNacimiento]);
