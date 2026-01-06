@@ -296,8 +296,8 @@ export const useLifeOS = () => {
     const marcarHabito = toggleHabito;
     const desmarcarHabito = toggleHabito;
 
-    // Reset a 'dejar' habit (user relapsed)
-    const reiniciarHabito = useCallback(async (id) => {
+    // Reset a 'dejar' habit (user relapsed) - HARDCORE MODE: -50 XP Penalty
+    const reiniciarHabito = useCallback(async (id, onProfileUpdate) => {
         const habito = habitos.find(h => h.id === id);
 
         if (!habito || habito.tipo !== 'dejar') return;
@@ -314,6 +314,36 @@ export const useLifeOS = () => {
             setHabitos(prev => prev.map(h =>
                 h.id === id ? { ...h, racha: 0, fecha_inicio: nuevaFechaInicio } : h
             ));
+
+            // HARDCORE MODE: Apply -50 XP Penalty for relapse
+            const { data: profile, error: profileError } = await supabase
+                .from('perfil_jugador')
+                .select('*')
+                .single();
+
+            if (profileError) {
+                console.error('Error fetching profile for penalty:', profileError);
+            } else if (profile) {
+                // PROGRESSIVE PENALTY: The higher the level, the harder the fall.
+                const penalty = 50 * (profile.nivel || 1);
+                const newXP = Math.max(0, profile.xp - penalty);
+                const newLevel = Math.floor(newXP / 100) + 1;
+
+                console.log(`Hardcore Punishment: Level ${profile.nivel} -> Penalty -${penalty} XP`);
+
+                // Update profile in DB
+                const { error: updateError } = await supabase
+                    .from('perfil_jugador')
+                    .update({ xp: newXP, nivel: newLevel })
+                    .eq('id', profile.id);
+
+                if (updateError) {
+                    console.error('Error applying XP penalty:', updateError);
+                } else if (onProfileUpdate) {
+                    // Trigger UI refresh - instantly show the XP drop
+                    onProfileUpdate({ ...profile, xp: newXP, nivel: newLevel });
+                }
+            }
         } catch (err) {
             console.error('Error resetting habito:', err);
             setError(err.message);

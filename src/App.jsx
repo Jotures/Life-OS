@@ -124,7 +124,7 @@ function App() {
                                 <AddictionCard
                                     key={habito.id}
                                     habito={habito}
-                                    onReiniciar={() => reiniciarHabito(habito.id)}
+                                    onReiniciar={() => reiniciarHabito(habito.id, setPlayerProfile)}
                                     onEliminar={() => setHabitToDelete({ id: habito.id, nombre: habito.nombre, tipo: habito.tipo })}
                                 />
                             ))}
