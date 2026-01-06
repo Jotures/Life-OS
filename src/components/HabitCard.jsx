@@ -1,5 +1,6 @@
 import { Check, Flame, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import HabitHeatmap from './HabitHeatmap';
 
 const HabitCard = ({ habito, onMarcar, onEliminar, completadoHoy }) => {
     const [showDelete, setShowDelete] = useState(false);
@@ -48,6 +49,9 @@ const HabitCard = ({ habito, onMarcar, onEliminar, completadoHoy }) => {
                     </button>
                 </div>
             </div>
+
+            {/* Heatmap - Last 14 days */}
+            <HabitHeatmap habitId={habito.id} streak={habito.racha} />
         </div>
     );
 };

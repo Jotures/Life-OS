@@ -237,6 +237,21 @@ export const useLifeOS = () => {
                 console.error('Error al guardar:', error);
                 setError(error.message);
             }
+
+            // 6. SYNC HISTORIAL_HABITOS for heatmap
+            if (diffInDays === 0) {
+                // UNMARKING: Delete today's record from history
+                await supabase
+                    .from('historial_habitos')
+                    .delete()
+                    .eq('habito_id', id)
+                    .eq('fecha', todayString);
+            } else {
+                // MARKING: Insert today's record into history (upsert to avoid duplicates)
+                await supabase
+                    .from('historial_habitos')
+                    .upsert({ habito_id: id, fecha: todayString }, { onConflict: 'habito_id,fecha' });
+            }
         } catch (err) {
             console.error('Error toggling habito:', err);
             setError(err.message);
