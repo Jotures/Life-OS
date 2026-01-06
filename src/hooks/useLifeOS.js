@@ -163,67 +163,89 @@ export const useLifeOS = () => {
         }
     }, []);
 
-    // Mark a 'construir' habit as done for today
-    const marcarHabito = useCallback(async (id) => {
-        const today = startOfDay(new Date()).toISOString();
+    // SMART HYBRID TOGGLE - Unified function for marking/unmarking habits
+    const toggleHabito = useCallback(async (id) => {
         const habito = habitos.find(h => h.id === id);
-
         if (!habito || habito.tipo !== 'construir') return;
 
-        // Check if already marked today
-        if (habito.ultima_fecha && isToday(parseISO(habito.ultima_fecha))) {
-            return; // Already marked today
+        // 1. OBTENER FECHAS
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Parsear fecha existente
+        let lastDate = null;
+        if (habito.ultima_fecha) {
+            const dateStr = habito.ultima_fecha.split('T')[0];
+            lastDate = new Date(dateStr + "T00:00:00");
+            lastDate.setHours(0, 0, 0, 0);
         }
 
-        // Check if marked yesterday (continuing streak)
-        const nuevaRacha = habito.ultima_fecha && isYesterday(parseISO(habito.ultima_fecha))
-            ? habito.racha + 1
-            : 1; // Start new streak if gap
+        // 2. CALCULAR DIFERENCIA EN DÍAS
+        let diffInDays = null;
+        if (lastDate) {
+            const diffTime = today.getTime() - lastDate.getTime();
+            diffInDays = Math.round(diffTime / (1000 * 3600 * 24));
+        }
 
+        // 3. DETERMINAR LA NUEVA RACHA
+        const currentVal = Number(habito.racha || 0);
+        let nuevaRacha;
+        let nuevaFecha;
+
+        const todayString = today.toISOString().split('T')[0];
+
+        // CALCULAR AYER (Para no perder la memoria al desmarcar)
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayString = yesterday.toISOString().split('T')[0];
+
+        if (diffInDays === 0) {
+            // --- CASO: DESMARCAR (UNDO) ---
+            nuevaRacha = Math.max(0, currentVal - 1);
+            // TRUCO MAESTRO: Si la racha sigue viva (>0), la fecha es AYER.
+            // Si la racha muere (0), la fecha es null.
+            nuevaFecha = nuevaRacha > 0 ? yesterdayString : null;
+
+        } else if (diffInDays === 1) {
+            // --- CASO: RACHA PERFECTA ---
+            nuevaRacha = currentVal + 1;
+            nuevaFecha = todayString;
+
+        } else {
+            // --- CASO: RACHA ROTA O PRIMERA VEZ ---
+            nuevaRacha = 1;
+            nuevaFecha = todayString;
+        }
+
+        console.log(`Debug: RachaBD=${currentVal}, Diff=${diffInDays}, Nueva=${nuevaRacha}, Fecha=${nuevaFecha}`);
+
+        // 4. ACTUALIZAR ESTADO LOCAL (Optimista)
+        setHabitos(prev => prev.map(h =>
+            h.id === id
+                ? { ...h, racha: nuevaRacha, ultima_fecha: nuevaFecha }
+                : h
+        ));
+
+        // 5. ACTUALIZAR SUPABASE
         try {
             const { error } = await supabase
                 .from('habitos')
-                .update({ racha: nuevaRacha, ultima_fecha: today })
+                .update({ racha: nuevaRacha, ultima_fecha: nuevaFecha })
                 .eq('id', id);
 
-            if (error) throw error;
-            setHabitos(prev => prev.map(h =>
-                h.id === id ? { ...h, racha: nuevaRacha, ultima_fecha: today } : h
-            ));
+            if (error) {
+                console.error('Error al guardar:', error);
+                setError(error.message);
+            }
         } catch (err) {
-            console.error('Error marking habito:', err);
+            console.error('Error toggling habito:', err);
             setError(err.message);
         }
     }, [habitos]);
 
-    // Unmark a 'construir' habit (undo today's mark)
-    const desmarcarHabito = useCallback(async (id) => {
-        const habito = habitos.find(h => h.id === id);
-
-        if (!habito || habito.tipo !== 'construir') return;
-
-        // Only unmark if it was marked today
-        if (!habito.ultima_fecha || !isToday(parseISO(habito.ultima_fecha))) {
-            return;
-        }
-
-        const nuevaRacha = Math.max(0, habito.racha - 1);
-
-        try {
-            const { error } = await supabase
-                .from('habitos')
-                .update({ racha: nuevaRacha, ultima_fecha: null })
-                .eq('id', id);
-
-            if (error) throw error;
-            setHabitos(prev => prev.map(h =>
-                h.id === id ? { ...h, racha: nuevaRacha, ultima_fecha: null } : h
-            ));
-        } catch (err) {
-            console.error('Error unmarking habito:', err);
-            setError(err.message);
-        }
-    }, [habitos]);
+    // Keep marcarHabito/desmarcarHabito as aliases for backwards compatibility
+    const marcarHabito = toggleHabito;
+    const desmarcarHabito = toggleHabito;
 
     // Reset a 'dejar' habit (user relapsed)
     const reiniciarHabito = useCallback(async (id) => {

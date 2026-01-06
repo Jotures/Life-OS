@@ -55,8 +55,8 @@ const AddictionCard = ({ habito, onReiniciar, onEliminar }) => {
                     <button
                         onClick={handleReiniciar}
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${confirmReset
-                                ? 'bg-red-500/20 text-red-400 border border-red-500/50'
-                                : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
+                            ? 'bg-red-500/20 text-red-400 border border-red-500/50'
+                            : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
                             }`}
                     >
                         <span className="flex items-center gap-1.5">

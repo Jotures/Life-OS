@@ -16,8 +16,8 @@ const HabitCard = ({ habito, onMarcar, onEliminar, completadoHoy }) => {
                     <button
                         onClick={onMarcar}
                         className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-200 ${completadoHoy
-                                ? 'bg-zinc-100 border-zinc-100'
-                                : 'border-zinc-600 hover:border-zinc-400'
+                            ? 'bg-zinc-100 border-zinc-100'
+                            : 'border-zinc-600 hover:border-zinc-400'
                             }`}
                     >
                         {completadoHoy && (

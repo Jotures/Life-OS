@@ -5,10 +5,12 @@ import Header from './components/Header';
 import HabitCard from './components/HabitCard';
 import AddictionCard from './components/AddictionCard';
 import NewHabitModal from './components/NewHabitModal';
+import DeleteConfirmModal from './components/DeleteConfirmModal';
 import MementoMori from './components/MementoMori';
 
 function App() {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [habitToDelete, setHabitToDelete] = useState(null); // { id, nombre, tipo }
 
     const {
         habitosConstruir,
@@ -31,6 +33,13 @@ function App() {
             desmarcarHabito(id);
         } else {
             marcarHabito(id);
+        }
+    };
+
+    const handleConfirmDelete = () => {
+        if (habitToDelete) {
+            eliminarHabito(habitToDelete.id);
+            setHabitToDelete(null);
         }
     };
 
@@ -65,7 +74,7 @@ function App() {
                                     habito={habito}
                                     completadoHoy={estaCompletadoHoy(habito.id)}
                                     onMarcar={() => handleMarcarHabito(habito.id)}
-                                    onEliminar={() => eliminarHabito(habito.id)}
+                                    onEliminar={() => setHabitToDelete({ id: habito.id, nombre: habito.nombre, tipo: habito.tipo })}
                                 />
                             ))}
                         </div>
@@ -92,7 +101,7 @@ function App() {
                                     key={habito.id}
                                     habito={habito}
                                     onReiniciar={() => reiniciarHabito(habito.id)}
-                                    onEliminar={() => eliminarHabito(habito.id)}
+                                    onEliminar={() => setHabitToDelete({ id: habito.id, nombre: habito.nombre, tipo: habito.tipo })}
                                 />
                             ))}
                         </div>
@@ -120,11 +129,20 @@ function App() {
                     <p>Life OS — Tu sistema de gestión personal</p>
                 </footer>
 
-                {/* Modal */}
+                {/* New Habit Modal */}
                 <NewHabitModal
                     isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
                     onSubmit={agregarHabito}
+                />
+
+                {/* Delete Confirmation Modal */}
+                <DeleteConfirmModal
+                    isOpen={!!habitToDelete}
+                    habitName={habitToDelete?.nombre}
+                    habitType={habitToDelete?.tipo}
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setHabitToDelete(null)}
                 />
             </div>
         </div>
@@ -132,3 +150,4 @@ function App() {
 }
 
 export default App;
+
