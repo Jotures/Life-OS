@@ -1,16 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Target, ShieldOff } from 'lucide-react';
 import { useLifeOS } from './hooks/useLifeOS';
+import { supabase } from './supabaseClient';
 import Header from './components/Header';
 import HabitCard from './components/HabitCard';
 import AddictionCard from './components/AddictionCard';
 import NewHabitModal from './components/NewHabitModal';
 import DeleteConfirmModal from './components/DeleteConfirmModal';
 import MementoMori from './components/MementoMori';
+import LevelBanner from './components/LevelBanner';
 
 function App() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [habitToDelete, setHabitToDelete] = useState(null); // { id, nombre, tipo }
+    const [playerProfile, setPlayerProfile] = useState(null);
 
     const {
         habitosConstruir,
@@ -26,13 +29,31 @@ function App() {
         estaCompletadoHoy
     } = useLifeOS();
 
+    // Fetch player profile on mount
+    useEffect(() => {
+        const fetchProfile = async () => {
+            const { data, error } = await supabase
+                .from('perfil_jugador')
+                .select('*')
+                .single();
+
+            if (error) {
+                console.error('Error fetching player profile:', error);
+            } else {
+                setPlayerProfile(data);
+            }
+        };
+
+        fetchProfile();
+    }, []);
+
     const mementoData = getMementoMoriData();
 
     const handleMarcarHabito = (id) => {
         if (estaCompletadoHoy(id)) {
-            desmarcarHabito(id);
+            desmarcarHabito(id, setPlayerProfile);
         } else {
-            marcarHabito(id);
+            marcarHabito(id, setPlayerProfile);
         }
     };
 
@@ -47,6 +68,9 @@ function App() {
         <div className="min-h-screen bg-zinc-950 py-8 px-4">
             <div className="max-w-2xl mx-auto">
                 <Header />
+
+                {/* RPG Level Banner */}
+                <LevelBanner profile={playerProfile} />
 
                 {/* Habits Section */}
                 <section className="mb-8">

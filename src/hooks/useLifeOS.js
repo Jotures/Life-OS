@@ -164,7 +164,7 @@ export const useLifeOS = () => {
     }, []);
 
     // SMART HYBRID TOGGLE - Unified function for marking/unmarking habits
-    const toggleHabito = useCallback(async (id) => {
+    const toggleHabito = useCallback(async (id, onProfileUpdate) => {
         const habito = habitos.find(h => h.id === id);
         if (!habito || habito.tipo !== 'construir') return;
 
@@ -199,7 +199,10 @@ export const useLifeOS = () => {
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayString = yesterday.toISOString().split('T')[0];
 
-        if (diffInDays === 0) {
+        // Determine if this is marking or unmarking
+        const isUnmarking = diffInDays === 0;
+
+        if (isUnmarking) {
             // --- CASO: DESMARCAR (UNDO) ---
             nuevaRacha = Math.max(0, currentVal - 1);
             // TRUCO MAESTRO: Si la racha sigue viva (>0), la fecha es AYER.
@@ -239,7 +242,7 @@ export const useLifeOS = () => {
             }
 
             // 6. SYNC HISTORIAL_HABITOS for heatmap
-            if (diffInDays === 0) {
+            if (isUnmarking) {
                 // UNMARKING: Delete today's record from history
                 await supabase
                     .from('historial_habitos')
@@ -251,6 +254,37 @@ export const useLifeOS = () => {
                 await supabase
                     .from('historial_habitos')
                     .upsert({ habito_id: id, fecha: todayString }, { onConflict: 'habito_id,fecha' });
+            }
+
+            // 7. RPG GAMIFICATION: Update XP and Level
+            const xpChange = isUnmarking ? -10 : 10;
+
+            // Fetch current profile
+            const { data: profile, error: profileError } = await supabase
+                .from('perfil_jugador')
+                .select('*')
+                .single();
+
+            if (profileError) {
+                console.error('Error fetching profile:', profileError);
+            } else if (profile) {
+                // Calculate new XP (minimum 0)
+                const newXP = Math.max(0, profile.xp + xpChange);
+                // Level formula: Floor(XP / 100) + 1
+                const newLevel = Math.floor(newXP / 100) + 1;
+
+                // Update profile in DB
+                const { error: updateError } = await supabase
+                    .from('perfil_jugador')
+                    .update({ xp: newXP, nivel: newLevel })
+                    .eq('id', profile.id);
+
+                if (updateError) {
+                    console.error('Error updating profile:', updateError);
+                } else if (onProfileUpdate) {
+                    // Trigger UI refresh
+                    onProfileUpdate({ ...profile, xp: newXP, nivel: newLevel });
+                }
             }
         } catch (err) {
             console.error('Error toggling habito:', err);

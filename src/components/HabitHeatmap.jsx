@@ -72,22 +72,39 @@ const HabitHeatmap = ({ habitId, streak }) => {
         );
     }
 
-    return (
-        <div className="flex gap-1 mt-3">
-            {last14Days.map((dateString) => {
-                const isCompleted = history.has(dateString);
+    // Calculate Efficiency
+    const completedCount = last14Days.filter(date => history.has(date)).length;
+    const efficiency = Math.round((completedCount / last14Days.length) * 100);
 
-                return (
-                    <div
-                        key={dateString}
-                        title={formatDateDisplay(dateString)}
-                        className={`w-3 h-3 rounded-sm transition-colors duration-200 ${isCompleted
-                            ? 'bg-emerald-500'
-                            : 'bg-zinc-800'
-                            }`}
-                    />
-                );
-            })}
+    let effColor = "text-zinc-500";
+    if (efficiency >= 80) effColor = "text-emerald-400";
+    else if (efficiency >= 50) effColor = "text-amber-400";
+
+    return (
+        <div className="flex flex-col gap-1 mt-2">
+            {/* Header with Efficiency */}
+            <div className="flex justify-between items-end">
+                <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Últimos 14 días</span>
+                <span className={`text-xs font-bold font-mono ${effColor}`}>{efficiency}%</span>
+            </div>
+
+            {/* The Grid */}
+            <div className="flex gap-1">
+                {last14Days.map((dateString) => {
+                    const isCompleted = history.has(dateString);
+
+                    return (
+                        <div
+                            key={dateString}
+                            title={formatDateDisplay(dateString)}
+                            className={`w-3 h-3 rounded-sm transition-all duration-300 ${isCompleted
+                                ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                                : 'bg-zinc-800'
+                                }`}
+                        />
+                    );
+                })}
+            </div>
         </div>
     );
 };
