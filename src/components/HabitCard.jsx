@@ -1,9 +1,11 @@
-import { Check, Flame, Trash2 } from 'lucide-react';
+import { Check, Flame, Pencil, Trash2, Timer } from 'lucide-react';
 import { useState } from 'react';
 import HabitHeatmap from './HabitHeatmap';
+import PomodoroTimer from './PomodoroTimer';
 
-const HabitCard = ({ habito, onMarcar, onEliminar, completadoHoy }) => {
+const HabitCard = ({ habito, onMarcar, onEliminar, onEdit, completadoHoy }) => {
     const [showDelete, setShowDelete] = useState(false);
+    const [showTimer, setShowTimer] = useState(false);
 
     return (
         <div
@@ -30,6 +32,19 @@ const HabitCard = ({ habito, onMarcar, onEliminar, completadoHoy }) => {
                     <span className={`text-zinc-100 font-medium ${completadoHoy ? 'line-through text-zinc-500' : ''}`}>
                         {habito.nombre}
                     </span>
+
+                    {/* Goal Badge */}
+                    {habito.meta && (
+                        <span
+                            className="px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
+                            style={{
+                                backgroundColor: habito.meta.color + '30',
+                                color: habito.meta.color
+                            }}
+                        >
+                            🎯 {habito.meta.nombre}
+                        </span>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -38,6 +53,27 @@ const HabitCard = ({ habito, onMarcar, onEliminar, completadoHoy }) => {
                         <Flame className={`w-4 h-4 ${habito.racha > 0 ? 'text-orange-500' : ''}`} />
                         <span className="text-sm font-medium">{habito.racha}</span>
                     </div>
+
+                    {/* Pomodoro Timer button */}
+                    <button
+                        onClick={() => setShowTimer(!showTimer)}
+                        className={`p-1.5 rounded-lg transition-all duration-200 ${showTimer
+                            ? 'bg-emerald-600 text-white'
+                            : 'text-zinc-600 hover:text-emerald-400 hover:bg-zinc-800'
+                            } ${showDelete || showTimer ? 'opacity-100' : 'opacity-0'}`}
+                        title="Pomodoro Timer"
+                    >
+                        <Timer className="w-4 h-4" />
+                    </button>
+
+                    {/* Edit button */}
+                    <button
+                        onClick={onEdit}
+                        className={`p-1.5 rounded-lg text-zinc-600 hover:text-blue-400 hover:bg-zinc-800 transition-all duration-200 ${showDelete ? 'opacity-100' : 'opacity-0'
+                            }`}
+                    >
+                        <Pencil className="w-4 h-4" />
+                    </button>
 
                     {/* Delete button */}
                     <button
@@ -49,6 +85,11 @@ const HabitCard = ({ habito, onMarcar, onEliminar, completadoHoy }) => {
                     </button>
                 </div>
             </div>
+
+            {/* Pomodoro Timer (Collapsible) */}
+            {showTimer && (
+                <PomodoroTimer onClose={() => setShowTimer(false)} />
+            )}
 
             {/* Heatmap - Last 14 days */}
             <HabitHeatmap habitId={habito.id} streak={habito.racha} />

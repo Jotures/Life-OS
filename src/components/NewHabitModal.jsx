@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { X, Target, ShieldOff } from 'lucide-react';
 
-const NewHabitModal = ({ isOpen, onClose, onSubmit }) => {
+const NewHabitModal = ({ isOpen, onClose, onSubmit, metas = [] }) => {
     const [step, setStep] = useState('select'); // 'select' | 'name'
     const [tipo, setTipo] = useState(null);
     const [nombre, setNombre] = useState('');
+    const [metaId, setMetaId] = useState('');
 
     const handleSelectType = (selectedTipo) => {
         setTipo(selectedTipo);
@@ -14,7 +15,7 @@ const NewHabitModal = ({ isOpen, onClose, onSubmit }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (nombre.trim() && tipo) {
-            onSubmit(nombre.trim(), tipo);
+            onSubmit(nombre.trim(), tipo, metaId || null);
             handleClose();
         }
     };
@@ -23,6 +24,7 @@ const NewHabitModal = ({ isOpen, onClose, onSubmit }) => {
         setStep('select');
         setTipo(null);
         setNombre('');
+        setMetaId('');
         onClose();
     };
 
@@ -30,6 +32,7 @@ const NewHabitModal = ({ isOpen, onClose, onSubmit }) => {
         setStep('select');
         setTipo(null);
         setNombre('');
+        setMetaId('');
     };
 
     if (!isOpen) return null;
@@ -126,6 +129,27 @@ const NewHabitModal = ({ isOpen, onClose, onSubmit }) => {
                             className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors mb-4"
                             autoFocus
                         />
+
+                        {/* Goal Selector */}
+                        {metas.length > 0 && (
+                            <div className="mb-4">
+                                <label className="block text-zinc-400 text-sm mb-2">
+                                    Vincular a Meta (opcional)
+                                </label>
+                                <select
+                                    value={metaId}
+                                    onChange={(e) => setMetaId(e.target.value)}
+                                    className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors appearance-none cursor-pointer"
+                                >
+                                    <option value="">Sin meta</option>
+                                    {metas.map((m) => (
+                                        <option key={m.id} value={m.id}>
+                                            {m.nombre}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
 
                         <button
                             type="submit"

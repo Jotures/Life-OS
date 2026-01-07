@@ -24,31 +24,50 @@ const getStoredFechaNacimiento = () => {
 
 export const useLifeOS = () => {
     const [habitos, setHabitos] = useState([]);
+    const [metas, setMetas] = useState([]);
     const [fechaNacimiento, setFechaNacimientoState] = useState(getStoredFechaNacimiento);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Fetch habits from Supabase on mount
+    // Fetch habits and goals from Supabase on mount
     useEffect(() => {
-        const fetchHabitos = async () => {
+        const fetchData = async () => {
             try {
                 setLoading(true);
-                const { data, error } = await supabase
+
+                // Fetch goals first
+                const { data: metasData, error: metasError } = await supabase
+                    .from('metas')
+                    .select('*')
+                    .order('nombre', { ascending: true });
+
+                if (metasError) throw metasError;
+                setMetas(metasData || []);
+
+                // Fetch habits
+                const { data: habitosData, error: habitosError } = await supabase
                     .from('habitos')
                     .select('*')
                     .order('fecha_inicio', { ascending: true });
 
-                if (error) throw error;
-                setHabitos(data || []);
+                if (habitosError) throw habitosError;
+
+                // Join goal info to habits for easy access
+                const habitosConMeta = (habitosData || []).map(h => ({
+                    ...h,
+                    meta: (metasData || []).find(m => m.id === h.meta_id) || null
+                }));
+
+                setHabitos(habitosConMeta);
             } catch (err) {
-                console.error('Error fetching habitos:', err);
+                console.error('Error fetching data:', err);
                 setError(err.message);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchHabitos();
+        fetchData();
     }, []);
 
     // Persist fechaNacimiento to localStorage
@@ -122,13 +141,14 @@ export const useLifeOS = () => {
     }, [habitos.length]); // Only run when habitos are loaded
 
     // Add a new habit
-    const agregarHabito = useCallback(async (nombre, tipo) => {
+    const agregarHabito = useCallback(async (nombre, tipo, metaId = null) => {
         const nuevoHabito = {
             nombre: nombre.trim(),
             racha: 0,
             ultima_fecha: null,
             fecha_inicio: new Date().toISOString(),
-            tipo
+            tipo,
+            meta_id: metaId || null
         };
 
         try {
@@ -139,9 +159,115 @@ export const useLifeOS = () => {
                 .single();
 
             if (error) throw error;
-            setHabitos(prev => [...prev, data]);
+
+            // Join goal info to the new habit
+            const metaInfo = metas.find(m => m.id === metaId) || null;
+            const habitoConMeta = { ...data, meta: metaInfo };
+
+            setHabitos(prev => [...prev, habitoConMeta]);
         } catch (err) {
             console.error('Error adding habito:', err);
+            alert("ERROR SUPABASE: " + err.message);
+            setError(err.message);
+        }
+    }, [metas]);
+
+    // Add a new goal
+    const agregarMeta = useCallback(async (nombre, descripcion = '', color = '#3B82F6') => {
+        const nuevaMeta = {
+            nombre: nombre.trim(),
+            descripcion: descripcion.trim(),
+            color
+        };
+
+        try {
+            const { data, error } = await supabase
+                .from('metas')
+                .insert([nuevaMeta])
+                .select()
+                .single();
+
+            if (error) throw error;
+            setMetas(prev => [...prev, data]);
+            return data;
+        } catch (err) {
+            console.error('Error adding meta:', err);
+            alert("ERROR SUPABASE: " + err.message);
+            setError(err.message);
+            return null;
+        }
+    }, []);
+
+    // Update an existing habit
+    const actualizarHabito = useCallback(async (id, updates) => {
+        try {
+            const { error } = await supabase
+                .from('habitos')
+                .update(updates)
+                .eq('id', id);
+
+            if (error) throw error;
+
+            // Update local state with new values and joined meta info
+            const metaInfo = updates.meta_id ? metas.find(m => m.id === updates.meta_id) : null;
+            setHabitos(prev => prev.map(h =>
+                h.id === id ? { ...h, ...updates, meta: metaInfo } : h
+            ));
+        } catch (err) {
+            console.error('Error updating habito:', err);
+            alert("ERROR SUPABASE: " + err.message);
+            setError(err.message);
+        }
+    }, [metas]);
+
+    // Update an existing goal
+    const actualizarMeta = useCallback(async (id, updates) => {
+        try {
+            const { error } = await supabase
+                .from('metas')
+                .update(updates)
+                .eq('id', id);
+
+            if (error) throw error;
+
+            // Update goal in local state
+            setMetas(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
+
+            // Also update habits that reference this goal
+            setHabitos(prev => prev.map(h =>
+                h.meta_id === id ? { ...h, meta: { ...h.meta, ...updates } } : h
+            ));
+        } catch (err) {
+            console.error('Error updating meta:', err);
+            alert("ERROR SUPABASE: " + err.message);
+            setError(err.message);
+        }
+    }, []);
+
+    // Delete a goal
+    const eliminarMeta = useCallback(async (id) => {
+        try {
+            // First, unlink all habits from this goal
+            await supabase
+                .from('habitos')
+                .update({ meta_id: null })
+                .eq('meta_id', id);
+
+            // Then delete the goal
+            const { error } = await supabase
+                .from('metas')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+
+            // Update local state
+            setMetas(prev => prev.filter(m => m.id !== id));
+            setHabitos(prev => prev.map(h =>
+                h.meta_id === id ? { ...h, meta_id: null, meta: null } : h
+            ));
+        } catch (err) {
+            console.error('Error deleting meta:', err);
             alert("ERROR SUPABASE: " + err.message);
             setError(err.message);
         }
@@ -410,11 +536,16 @@ export const useLifeOS = () => {
         habitos,
         habitosConstruir: habitos.filter(h => h.tipo === 'construir'),
         habitosDejar: habitos.filter(h => h.tipo === 'dejar'),
+        metas,
         fechaNacimiento,
         loading,
         error,
         agregarHabito,
+        agregarMeta,
+        actualizarHabito,
+        actualizarMeta,
         eliminarHabito,
+        eliminarMeta,
         marcarHabito,
         desmarcarHabito,
         reiniciarHabito,
