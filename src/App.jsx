@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, Target, ShieldOff, Zap, Flag, Clock, BarChart3, LayoutGrid } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Target, ShieldOff, Zap, Flag, Clock, BarChart3, LayoutGrid, ShoppingBag } from 'lucide-react';
 import { useLifeOS } from './hooks/useLifeOS';
 import { supabase } from './supabaseClient';
 import Header from './components/Header';
@@ -14,6 +14,7 @@ import LevelBanner from './components/LevelBanner';
 import GoalsSection from './components/GoalsSection';
 import FocusStudio from './components/FocusStudio';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
+import RewardsShop from './components/RewardsShop';
 
 function App() {
     const [activeTab, setActiveTab] = useState('tracker');
@@ -43,23 +44,24 @@ function App() {
         estaCompletadoHoy
     } = useLifeOS();
 
+    // Fetch player profile
+    const fetchProfile = useCallback(async () => {
+        const { data, error } = await supabase
+            .from('perfil_jugador')
+            .select('*')
+            .single();
+
+        if (error) {
+            console.error('Error fetching player profile:', error);
+        } else {
+            setPlayerProfile(data);
+        }
+    }, []);
+
     // Fetch player profile on mount
     useEffect(() => {
-        const fetchProfile = async () => {
-            const { data, error } = await supabase
-                .from('perfil_jugador')
-                .select('*')
-                .single();
-
-            if (error) {
-                console.error('Error fetching player profile:', error);
-            } else {
-                setPlayerProfile(data);
-            }
-        };
-
         fetchProfile();
-    }, []);
+    }, [fetchProfile]);
 
     // Fetch habit history for goal progress calculation
     useEffect(() => {
@@ -115,6 +117,7 @@ function App() {
                     {[
                         { id: 'tracker', icon: LayoutGrid, label: 'Mi Día' },
                         { id: 'planning', icon: Target, label: 'Metas' },
+                        { id: 'store', icon: ShoppingBag, label: 'Tienda' },
                         { id: 'focus', icon: Clock, label: 'Enfoque' },
                         { id: 'analytics', icon: BarChart3, label: 'Progreso' }
                     ].map(tab => {
@@ -240,6 +243,14 @@ function App() {
                 {/* FOCUS TAB: Standalone Pomodoro Timer */}
                 {activeTab === 'focus' && (
                     <FocusStudio />
+                )}
+
+                {/* STORE TAB: Rewards Shop */}
+                {activeTab === 'store' && (
+                    <RewardsShop
+                        currentXP={playerProfile?.xp || 0}
+                        onPurchase={fetchProfile}
+                    />
                 )}
 
                 {/* ANALYTICS TAB: Progress Dashboard */}
