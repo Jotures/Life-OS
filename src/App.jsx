@@ -110,14 +110,13 @@ function App() {
                 <Header />
 
                 {/* RPG Level Banner */}
-                <LevelBanner profile={playerProfile} />
+                <LevelBanner profile={playerProfile} onOpenShop={() => setActiveTab('store')} />
 
                 {/* Icon Dock Navigation */}
                 <nav className="flex justify-center gap-1 mb-6 p-2 bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-800">
                     {[
                         { id: 'tracker', icon: LayoutGrid, label: 'Mi Día' },
                         { id: 'planning', icon: Target, label: 'Metas' },
-                        { id: 'store', icon: ShoppingBag, label: 'Tienda' },
                         { id: 'focus', icon: Clock, label: 'Enfoque' },
                         { id: 'analytics', icon: BarChart3, label: 'Progreso' }
                     ].map(tab => {

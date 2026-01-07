@@ -1,6 +1,6 @@
-import { Zap } from 'lucide-react';
+import { Zap, ShoppingBag } from 'lucide-react';
 
-const LevelBanner = ({ profile }) => {
+const LevelBanner = ({ profile, onOpenShop }) => {
     if (!profile) {
         return (
             <div className="bg-zinc-900 border-b border-zinc-800 p-4 mb-6 rounded-xl animate-pulse">
@@ -34,9 +34,25 @@ const LevelBanner = ({ profile }) => {
                         Nivel {nivel}
                     </span>
                 </div>
-                <span className="text-sm text-zinc-400 font-mono">
-                    {xp} XP
-                </span>
+
+                {/* Right Side: XP + Shop Button */}
+                <div className="flex items-center gap-3">
+                    <span className="text-sm text-zinc-400 font-mono">
+                        {xp} XP
+                    </span>
+
+                    {/* Shop Button */}
+                    {onOpenShop && (
+                        <button
+                            onClick={onOpenShop}
+                            className="bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 p-2 rounded-xl transition-colors border border-yellow-500/20 flex items-center gap-1.5"
+                            title="Abrir Tienda"
+                        >
+                            <ShoppingBag className="w-4 h-4" />
+                            <span className="text-xs font-bold hidden sm:inline">Gastar</span>
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Progress Bar */}
