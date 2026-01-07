@@ -246,6 +246,7 @@ function App() {
                 {activeTab === 'analytics' && (
                     <AnalyticsDashboard
                         habitos={habitosConstruir}
+                        vicios={habitosDejar}
                         metas={metas}
                         profile={playerProfile}
                     />

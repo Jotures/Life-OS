@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Activity, Flame, Target, TrendingUp, Zap } from 'lucide-react';
+import { Activity, Flame, Target, TrendingUp, Zap, Shield } from 'lucide-react';
 import {
     ResponsiveContainer,
     RadarChart,
@@ -15,7 +15,7 @@ import {
 } from 'recharts';
 import { supabase } from '../supabaseClient';
 
-const AnalyticsDashboard = ({ habitos = [], metas = [], profile }) => {
+const AnalyticsDashboard = ({ habitos = [], vicios = [], metas = [], profile }) => {
     const [activityData, setActivityData] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -116,6 +116,16 @@ const AnalyticsDashboard = ({ habitos = [], metas = [], profile }) => {
 
     const radarData = getRadarData();
     const needsMoreGoals = metas.length > 0 && metas.length < 3;
+
+    // Calculate vice metrics (Days Clean)
+    const calculateDaysClean = (fechaInicio) => {
+        if (!fechaInicio) return 0;
+        const start = new Date(fechaInicio);
+        const today = new Date();
+        return Math.floor((today - start) / (1000 * 60 * 60 * 24));
+    };
+
+    const totalDaysClean = vicios.reduce((sum, v) => sum + (v.racha || calculateDaysClean(v.fecha_inicio)), 0);
 
     return (
         <div className="space-y-6">
@@ -271,6 +281,43 @@ const AnalyticsDashboard = ({ habitos = [], metas = [], profile }) => {
                     )}
                 </div>
             </div>
+
+            {/* Vices Section - Purity & Discipline */}
+            {vicios.length > 0 && (
+                <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-violet-400" />
+                            <h3 className="text-zinc-100 font-medium">Pureza y Disciplina</h3>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-violet-500/20 px-2.5 py-1 rounded-full">
+                            <span className="text-xs text-violet-400 font-medium">{totalDaysClean} días totales</span>
+                        </div>
+                    </div>
+                    <div className="space-y-3">
+                        {vicios.map(vicio => {
+                            const daysClean = vicio.racha || calculateDaysClean(vicio.fecha_inicio);
+                            return (
+                                <div
+                                    key={vicio.id}
+                                    className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg border border-zinc-800"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Shield className="w-4 h-4 text-violet-400" />
+                                        <span className="text-zinc-200 text-sm font-medium">{vicio.nombre}</span>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className={`text-lg font-bold ${daysClean > 0 ? 'text-violet-400' : 'text-zinc-500'}`}>
+                                            {daysClean}
+                                        </div>
+                                        <div className="text-[10px] text-zinc-500 uppercase">días limpio</div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
