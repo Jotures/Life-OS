@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Target, ShieldOff, Zap, Flag, Clock } from 'lucide-react';
+import { Plus, Target, ShieldOff, Zap, Flag, Clock, BarChart3, LayoutGrid } from 'lucide-react';
 import { useLifeOS } from './hooks/useLifeOS';
 import { supabase } from './supabaseClient';
 import Header from './components/Header';
@@ -13,6 +13,7 @@ import MementoMori from './components/MementoMori';
 import LevelBanner from './components/LevelBanner';
 import GoalsSection from './components/GoalsSection';
 import FocusStudio from './components/FocusStudio';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
 
 function App() {
     const [activeTab, setActiveTab] = useState('tracker');
@@ -109,39 +110,39 @@ function App() {
                 {/* RPG Level Banner */}
                 <LevelBanner profile={playerProfile} />
 
-                {/* Tab Navigation */}
-                <div className="flex gap-2 mb-6">
-                    <button
-                        onClick={() => setActiveTab('tracker')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-all duration-200 ${activeTab === 'tracker'
-                            ? 'bg-zinc-100 text-zinc-900'
-                            : 'bg-zinc-900 text-zinc-400 hover:text-zinc-300 border border-zinc-800'
-                            }`}
-                    >
-                        <Zap className="w-4 h-4" />
-                        Mi Día
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('planning')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-all duration-200 ${activeTab === 'planning'
-                            ? 'bg-zinc-100 text-zinc-900'
-                            : 'bg-zinc-900 text-zinc-400 hover:text-zinc-300 border border-zinc-800'
-                            }`}
-                    >
-                        <Flag className="w-4 h-4" />
-                        Metas
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('focus')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-all duration-200 ${activeTab === 'focus'
-                            ? 'bg-zinc-100 text-zinc-900'
-                            : 'bg-zinc-900 text-zinc-400 hover:text-zinc-300 border border-zinc-800'
-                            }`}
-                    >
-                        <Clock className="w-4 h-4" />
-                        Enfoque
-                    </button>
-                </div>
+                {/* Icon Dock Navigation */}
+                <nav className="flex justify-center gap-1 mb-6 p-2 bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-800">
+                    {[
+                        { id: 'tracker', icon: LayoutGrid, label: 'Mi Día' },
+                        { id: 'planning', icon: Target, label: 'Metas' },
+                        { id: 'focus', icon: Clock, label: 'Enfoque' },
+                        { id: 'analytics', icon: BarChart3, label: 'Progreso' }
+                    ].map(tab => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`relative flex flex-col items-center gap-1 px-5 py-2 rounded-xl transition-all duration-200
+                                    ${isActive
+                                        ? 'text-zinc-100'
+                                        : 'text-zinc-500 hover:text-zinc-300'
+                                    }`}
+                                title={tab.label}
+                            >
+                                <Icon className={`w-5 h-5 transition-all ${isActive ? 'scale-110' : ''}`} />
+                                <span className={`text-[10px] font-medium transition-opacity ${isActive ? 'opacity-100' : 'opacity-60'}`}>
+                                    {tab.label}
+                                </span>
+                                {/* Active indicator dot */}
+                                {isActive && (
+                                    <span className="absolute -bottom-0.5 w-1 h-1 bg-emerald-400 rounded-full" />
+                                )}
+                            </button>
+                        );
+                    })}
+                </nav>
 
                 {/* TRACKER TAB: Daily habits and vices */}
                 {activeTab === 'tracker' && (
@@ -239,6 +240,15 @@ function App() {
                 {/* FOCUS TAB: Standalone Pomodoro Timer */}
                 {activeTab === 'focus' && (
                     <FocusStudio />
+                )}
+
+                {/* ANALYTICS TAB: Progress Dashboard */}
+                {activeTab === 'analytics' && (
+                    <AnalyticsDashboard
+                        habitos={habitosConstruir}
+                        metas={metas}
+                        profile={playerProfile}
+                    />
                 )}
 
                 {/* Footer */}
