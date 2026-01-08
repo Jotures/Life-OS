@@ -12,6 +12,15 @@ const LevelBanner = ({ profile, onOpenShop }) => {
 
     const { xp, nivel } = profile;
 
+    // Helper function to define color tiers
+    const getLevelColorClasses = (level) => {
+        if (level < 5) return 'bg-purple-500 shadow-lg shadow-purple-500/50';     // Tier 1: Novice (Purple)
+        if (level < 10) return 'bg-cyan-500 shadow-lg shadow-cyan-500/50';        // Tier 2: Advanced (Cyan)
+        if (level < 20) return 'bg-emerald-500 shadow-lg shadow-emerald-500/50';  // Tier 3: Elite (Green)
+        if (level < 50) return 'bg-yellow-500 shadow-lg shadow-yellow-500/50';    // Tier 4: Master (Gold)
+        return 'bg-red-600 shadow-lg shadow-red-600/50';                          // Tier 5: Legend (Red)
+    };
+
     // Calculate progress to next level
     // Level formula: Floor(XP / 100) + 1
     // XP needed for current level: (nivel - 1) * 100
@@ -55,12 +64,18 @@ const LevelBanner = ({ profile, onOpenShop }) => {
                 </div>
             </div>
 
-            {/* Progress Bar */}
+            {/* Progress Bar with Dynamic Tier Colors */}
             <div className="bg-zinc-800 h-4 rounded-full overflow-hidden">
                 <div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500 ease-out"
+                    className={`h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden ${getLevelColorClasses(nivel)}`}
                     style={{ width: `${progressPercent}%` }}
-                />
+                >
+                    {/* Animated striped overlay for premium feel */}
+                    <div
+                        className="absolute inset-0 opacity-20 bg-[linear-gradient(45deg,rgba(255,255,255,.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,.15)_50%,rgba(255,255,255,.15)_75%,transparent_75%,transparent)] bg-[length:1rem_1rem]"
+                        style={{ animation: 'progress-stripes 1s linear infinite' }}
+                    />
+                </div>
             </div>
 
             {/* Progress Text */}

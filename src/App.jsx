@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Target, ShieldOff, Zap, Flag, Clock, BarChart3, LayoutGrid, ShoppingBag } from 'lucide-react';
 import { useLifeOS } from './hooks/useLifeOS';
 import { supabase } from './supabaseClient';
@@ -15,6 +15,7 @@ import GoalsSection from './components/GoalsSection';
 import FocusStudio from './components/FocusStudio';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import RewardsShop from './components/RewardsShop';
+import LevelUpModal from './components/LevelUpModal';
 
 function App() {
     const [activeTab, setActiveTab] = useState('tracker');
@@ -24,6 +25,8 @@ function App() {
     const [metaToEdit, setMetaToEdit] = useState(null);
     const [playerProfile, setPlayerProfile] = useState(null);
     const [habitHistory, setHabitHistory] = useState(new Map());
+    const [showLevelUpModal, setShowLevelUpModal] = useState(false);
+    const prevLevelRef = useRef(null);
 
     const {
         habitosConstruir,
@@ -62,6 +65,17 @@ function App() {
     useEffect(() => {
         fetchProfile();
     }, [fetchProfile]);
+
+    // Detect level-up and show celebration modal
+    useEffect(() => {
+        const currentLevel = playerProfile?.nivel;
+        if (currentLevel && prevLevelRef.current !== null && currentLevel > prevLevelRef.current) {
+            setShowLevelUpModal(true);
+        }
+        if (currentLevel) {
+            prevLevelRef.current = currentLevel;
+        }
+    }, [playerProfile?.nivel]);
 
     // Fetch habit history for goal progress calculation
     useEffect(() => {
@@ -301,6 +315,14 @@ function App() {
                     onConfirm={handleConfirmDelete}
                     onCancel={() => setHabitToDelete(null)}
                 />
+
+                {/* Level Up Celebration Modal */}
+                {showLevelUpModal && (
+                    <LevelUpModal
+                        newLevel={playerProfile?.nivel}
+                        onClose={() => setShowLevelUpModal(false)}
+                    />
+                )}
             </div>
         </div>
     );
