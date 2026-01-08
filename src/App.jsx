@@ -26,6 +26,7 @@ function App() {
     const [playerProfile, setPlayerProfile] = useState(null);
     const [habitHistory, setHabitHistory] = useState(new Map());
     const [showLevelUpModal, setShowLevelUpModal] = useState(false);
+    const [notification, setNotification] = useState(null);
     const prevLevelRef = useRef(null);
 
     const {
@@ -61,10 +62,76 @@ function App() {
         }
     }, []);
 
-    // Fetch player profile on mount
-    useEffect(() => {
-        fetchProfile();
+    // Check vice rewards (passive XP for staying clean)
+    const checkViceRewards = useCallback(async (currentProfile) => {
+        if (!currentProfile) return;
+
+        // 1. Get only vices
+        const { data: vicios, error } = await supabase
+            .from('habitos')
+            .select('*')
+            .eq('tipo', 'dejar');
+
+        if (error || !vicios || vicios.length === 0) return;
+
+        let totalXp = 0;
+
+        for (const vicio of vicios) {
+            const lastReward = new Date(vicio.ultima_recompensa || vicio.created_at);
+            const now = new Date();
+            const diffTime = Math.abs(now - lastReward);
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays >= 1) {
+                const xpGain = diffDays * 10;
+
+                // Update the timestamp for this specific habit
+                await supabase
+                    .from('habitos')
+                    .update({ ultima_recompensa: new Date().toISOString() })
+                    .eq('id', vicio.id);
+
+                totalXp += xpGain;
+            }
+        }
+
+        // 2. Update Profile XP if we earned anything
+        if (totalXp > 0) {
+            const newXp = currentProfile.xp + totalXp;
+            await supabase
+                .from('perfil_jugador')
+                .update({ xp: newXp })
+                .eq('id', currentProfile.id);
+
+            // Refresh the profile to update UI
+            fetchProfile();
+
+            // Show custom toast notification
+            setNotification(`¡Racha de disciplina! Ganaste ${totalXp} XP mientras dormías`);
+            setTimeout(() => setNotification(null), 4000);
+        }
     }, [fetchProfile]);
+
+    // Fetch player profile on mount and check vice rewards
+    useEffect(() => {
+        const initializeApp = async () => {
+            const { data, error } = await supabase
+                .from('perfil_jugador')
+                .select('*')
+                .single();
+
+            if (error) {
+                console.error('Error fetching player profile:', error);
+                return;
+            }
+
+            setPlayerProfile(data);
+            // Check vice rewards with the freshly fetched profile
+            checkViceRewards(data);
+        };
+
+        initializeApp();
+    }, [checkViceRewards]);
 
     // Detect level-up and show celebration modal
     useEffect(() => {
@@ -322,6 +389,27 @@ function App() {
                         newLevel={playerProfile?.nivel}
                         onClose={() => setShowLevelUpModal(false)}
                     />
+                )}
+
+                {/* Premium Glass Notification */}
+                {notification && (
+                    <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 z-[100]
+                                    flex items-center gap-4 px-6 py-3
+                                    bg-zinc-950/80 backdrop-blur-xl
+                                    border border-white/10 rounded-full
+                                    shadow-2xl shadow-black/50
+                                    animate-in slide-in-from-bottom-8 fade-in duration-500">
+
+                        {/* Icon Container - Clean Gold Glow */}
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.2)]">
+                            <span className="text-sm">🛡️</span>
+                        </div>
+
+                        {/* Text Content - Clean & Readable */}
+                        <p className="text-zinc-200 text-sm font-medium pr-2">
+                            {notification}
+                        </p>
+                    </div>
                 )}
             </div>
         </div>
