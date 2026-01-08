@@ -41,16 +41,16 @@ const NewHabitModal = ({ isOpen, onClose, onSubmit, metas = [] }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+                className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in"
                 onClick={handleClose}
             />
 
             {/* Modal */}
-            <div className="relative bg-zinc-900 rounded-2xl border border-zinc-800 w-full max-w-md p-6 shadow-2xl">
+            <div className="relative bg-zinc-900 rounded-2xl border border-zinc-800 w-full max-w-md p-6 shadow-2xl animate-scale-bounce">
                 {/* Close button */}
                 <button
                     onClick={handleClose}
-                    className="absolute top-4 right-4 p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+                    className="absolute top-4 right-4 p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors hover:rotate-90 duration-200"
                 >
                     <X className="w-5 h-5" />
                 </button>
@@ -68,7 +68,8 @@ const NewHabitModal = ({ isOpen, onClose, onSubmit, metas = [] }) => {
                         <div className="space-y-3">
                             <button
                                 onClick={() => handleSelectType('construir')}
-                                className="w-full flex items-center gap-4 p-4 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-600 rounded-xl transition-all duration-200 text-left"
+                                className="w-full flex items-center gap-4 p-4 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-600 rounded-xl transition-all duration-200 text-left btn-press hover:scale-[1.02] animate-fade-in-up"
+                                style={{ animationDelay: '0.1s' }}
                             >
                                 <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
                                     <Target className="w-6 h-6 text-blue-400" />
@@ -85,7 +86,8 @@ const NewHabitModal = ({ isOpen, onClose, onSubmit, metas = [] }) => {
 
                             <button
                                 onClick={() => handleSelectType('dejar')}
-                                className="w-full flex items-center gap-4 p-4 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-600 rounded-xl transition-all duration-200 text-left"
+                                className="w-full flex items-center gap-4 p-4 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-600 rounded-xl transition-all duration-200 text-left btn-press hover:scale-[1.02] animate-fade-in-up"
+                                style={{ animationDelay: '0.15s' }}
                             >
                                 <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
                                     <ShieldOff className="w-6 h-6 text-red-400" />
@@ -154,7 +156,7 @@ const NewHabitModal = ({ isOpen, onClose, onSubmit, metas = [] }) => {
                         <button
                             type="submit"
                             disabled={!nombre.trim()}
-                            className="w-full bg-zinc-100 hover:bg-white text-zinc-900 font-medium py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-zinc-100 hover:bg-white text-zinc-900 font-medium py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed btn-press hover:scale-[1.02]"
                         >
                             Crear
                         </button>

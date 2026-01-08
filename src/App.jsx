@@ -207,20 +207,20 @@ function App() {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`relative flex flex-col items-center gap-1 px-5 py-2 rounded-xl transition-all duration-200
+                                className={`relative flex flex-col items-center gap-1 px-5 py-2 rounded-xl transition-all duration-200 btn-press
                                     ${isActive
                                         ? 'text-zinc-100'
-                                        : 'text-zinc-500 hover:text-zinc-300'
+                                        : 'text-zinc-500 hover:text-zinc-300 hover:scale-105'
                                     }`}
                                 title={tab.label}
                             >
-                                <Icon className={`w-5 h-5 transition-all ${isActive ? 'scale-110' : ''}`} />
-                                <span className={`text-[10px] font-medium transition-opacity ${isActive ? 'opacity-100' : 'opacity-60'}`}>
+                                <Icon className={`w-5 h-5 transition-all duration-200 ${isActive ? 'scale-110' : ''}`} />
+                                <span className={`text-[10px] font-medium transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-60'}`}>
                                     {tab.label}
                                 </span>
                                 {/* Active indicator dot */}
                                 {isActive && (
-                                    <span className="absolute -bottom-0.5 w-1 h-1 bg-emerald-400 rounded-full" />
+                                    <span className="absolute -bottom-0.5 w-1.5 h-1.5 bg-emerald-400 rounded-full animate-scale-in shadow-lg shadow-emerald-400/50" />
                                 )}
                             </button>
                         );
@@ -229,9 +229,9 @@ function App() {
 
                 {/* TRACKER TAB: Daily habits and vices */}
                 {activeTab === 'tracker' && (
-                    <>
+                    <div className="tab-content">
                         {/* Habits Section */}
-                        <section className="mb-8">
+                        <section className="mb-8 animate-fade-in-up">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-2">
                                     <Target className="w-5 h-5 text-blue-400" />
@@ -245,27 +245,28 @@ function App() {
                             </div>
 
                             {habitosConstruir.length === 0 ? (
-                                <p className="text-zinc-500 text-sm py-4 text-center">
+                                <p className="text-zinc-500 text-sm py-4 text-center animate-fade-in">
                                     No tienes hábitos todavía. ¡Crea uno!
                                 </p>
                             ) : (
                                 <div className="space-y-2">
-                                    {habitosConstruir.map(habito => (
-                                        <HabitCard
-                                            key={habito.id}
-                                            habito={habito}
-                                            completadoHoy={estaCompletadoHoy(habito.id)}
-                                            onMarcar={() => handleMarcarHabito(habito.id)}
-                                            onEdit={() => setHabitToEdit(habito)}
-                                            onEliminar={() => setHabitToDelete({ id: habito.id, nombre: habito.nombre, tipo: habito.tipo })}
-                                        />
+                                    {habitosConstruir.map((habito, index) => (
+                                        <div key={habito.id} className="stagger-item">
+                                            <HabitCard
+                                                habito={habito}
+                                                completadoHoy={estaCompletadoHoy(habito.id)}
+                                                onMarcar={() => handleMarcarHabito(habito.id)}
+                                                onEdit={() => setHabitToEdit(habito)}
+                                                onEliminar={() => setHabitToDelete({ id: habito.id, nombre: habito.nombre, tipo: habito.tipo })}
+                                            />
+                                        </div>
                                     ))}
                                 </div>
                             )}
                         </section>
 
                         {/* Addictions Section */}
-                        <section className="mb-8">
+                        <section className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                             <div className="flex items-center gap-2 mb-4">
                                 <ShieldOff className="w-5 h-5 text-red-400" />
                                 <h2 className="text-lg font-semibold text-zinc-100">
@@ -274,18 +275,19 @@ function App() {
                             </div>
 
                             {habitosDejar.length === 0 ? (
-                                <p className="text-zinc-500 text-sm py-4 text-center">
+                                <p className="text-zinc-500 text-sm py-4 text-center animate-fade-in">
                                     No tienes vicios registrados. ¡Bien por ti!
                                 </p>
                             ) : (
                                 <div className="space-y-2">
-                                    {habitosDejar.map(habito => (
-                                        <AddictionCard
-                                            key={habito.id}
-                                            habito={habito}
-                                            onReiniciar={() => reiniciarHabito(habito.id, setPlayerProfile)}
-                                            onEliminar={() => setHabitToDelete({ id: habito.id, nombre: habito.nombre, tipo: habito.tipo })}
-                                        />
+                                    {habitosDejar.map((habito, index) => (
+                                        <div key={habito.id} className="stagger-item" style={{ animationDelay: `${0.35 + index * 0.05}s` }}>
+                                            <AddictionCard
+                                                habito={habito}
+                                                onReiniciar={() => reiniciarHabito(habito.id, setPlayerProfile)}
+                                                onEliminar={() => setHabitToDelete({ id: habito.id, nombre: habito.nombre, tipo: habito.tipo })}
+                                            />
+                                        </div>
                                     ))}
                                 </div>
                             )}
@@ -294,53 +296,64 @@ function App() {
                         {/* Add button */}
                         <button
                             onClick={() => setIsModalOpen(true)}
-                            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-xl text-zinc-400 hover:text-zinc-200 transition-all duration-200 mb-8"
+                            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-xl text-zinc-400 hover:text-zinc-200 transition-all duration-200 mb-8 btn-press animate-fade-in-up"
+                            style={{ animationDelay: '0.2s' }}
                         >
                             <Plus className="w-5 h-5" />
                             <span className="font-medium">Nuevo Hábito</span>
                         </button>
 
                         {/* Memento Mori */}
-                        <MementoMori
-                            fechaNacimiento={fechaNacimiento}
-                            onSetFechaNacimiento={setFechaNacimiento}
-                            mementoData={mementoData}
-                        />
-                    </>
+                        <div className="animate-fade-in-up" style={{ animationDelay: '0.25s' }}>
+                            <MementoMori
+                                fechaNacimiento={fechaNacimiento}
+                                onSetFechaNacimiento={setFechaNacimiento}
+                                mementoData={mementoData}
+                            />
+                        </div>
+                    </div>
                 )}
 
                 {/* PLANNING TAB: Goals management */}
                 {activeTab === 'planning' && (
-                    <GoalsSection
-                        metas={metas}
-                        habitos={habitosConstruir}
-                        habitHistory={habitHistory}
-                        onAddMeta={agregarMeta}
-                        onEditMeta={setMetaToEdit}
-                    />
+                    <div className="tab-content">
+                        <GoalsSection
+                            metas={metas}
+                            habitos={habitosConstruir}
+                            habitHistory={habitHistory}
+                            onAddMeta={agregarMeta}
+                            onEditMeta={setMetaToEdit}
+                        />
+                    </div>
                 )}
 
                 {/* FOCUS TAB: Standalone Pomodoro Timer */}
                 {activeTab === 'focus' && (
-                    <FocusStudio />
+                    <div className="tab-content">
+                        <FocusStudio />
+                    </div>
                 )}
 
                 {/* STORE TAB: Rewards Shop */}
                 {activeTab === 'store' && (
-                    <RewardsShop
-                        currentXP={playerProfile?.xp || 0}
-                        onPurchase={fetchProfile}
-                    />
+                    <div className="tab-content">
+                        <RewardsShop
+                            currentXP={playerProfile?.xp || 0}
+                            onPurchase={fetchProfile}
+                        />
+                    </div>
                 )}
 
                 {/* ANALYTICS TAB: Progress Dashboard */}
                 {activeTab === 'analytics' && (
-                    <AnalyticsDashboard
-                        habitos={habitosConstruir}
-                        vicios={habitosDejar}
-                        metas={metas}
-                        profile={playerProfile}
-                    />
+                    <div className="tab-content">
+                        <AnalyticsDashboard
+                            habitos={habitosConstruir}
+                            vicios={habitosDejar}
+                            metas={metas}
+                            profile={playerProfile}
+                        />
+                    </div>
                 )}
 
                 {/* Footer */}
@@ -393,15 +406,15 @@ function App() {
 
                 {/* Premium Glass Notification */}
                 {notification && (
-                    <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 z-[100]
+                    <div className="fixed bottom-10 left-1/2 z-[100]
                                     flex items-center gap-4 px-6 py-3
                                     bg-zinc-950/80 backdrop-blur-xl
                                     border border-white/10 rounded-full
                                     shadow-2xl shadow-black/50
-                                    animate-in slide-in-from-bottom-8 fade-in duration-500">
+                                    toast-slide-up">
 
                         {/* Icon Container - Clean Gold Glow */}
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.2)]">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.2)] animate-wiggle">
                             <span className="text-sm">🛡️</span>
                         </div>
 

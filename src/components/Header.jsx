@@ -2,9 +2,9 @@ import { Sparkles } from 'lucide-react';
 
 const Header = () => {
     return (
-        <header className="mb-8 text-center">
+        <header className="mb-8 text-center animate-fade-in-down">
             <div className="flex items-center justify-center gap-3 mb-2">
-                <Sparkles className="w-8 h-8 text-zinc-400" />
+                <Sparkles className="w-8 h-8 text-zinc-400 animate-wiggle" />
                 <h1 className="text-3xl font-bold tracking-tight text-zinc-100">
                     Life OS
                 </h1>

@@ -65,7 +65,7 @@ const GoalsSection = ({ metas = [], habitos = [], habitHistory = new Map(), onAd
     };
 
     return (
-        <section className="mb-8">
+        <section className="mb-8 animate-fade-in-up">
             <div className="flex items-center gap-2 mb-4">
                 <Flag className="w-5 h-5 text-blue-400" />
                 <h2 className="text-lg font-semibold text-zinc-100">
@@ -89,13 +89,13 @@ const GoalsSection = ({ metas = [], habitos = [], habitHistory = new Map(), onAd
             ) : (
                 /* Goal Cards Grid */
                 <div className="grid grid-cols-2 gap-3">
-                    {metas.map(meta => {
+                    {metas.map((meta, index) => {
                         const { health, colorClass, textClass } = getGoalHealth(meta.id);
                         return (
                             <div
                                 key={meta.id}
-                                className="relative bg-zinc-900 rounded-xl p-4 border border-zinc-800 hover:border-zinc-700 transition-all duration-200 group"
-                                style={{ borderLeftColor: meta.color, borderLeftWidth: '3px' }}
+                                className="stagger-item relative bg-zinc-900 rounded-xl p-4 border border-zinc-800 hover:border-zinc-700 transition-all duration-200 group card-hover"
+                                style={{ borderLeftColor: meta.color, borderLeftWidth: '3px', animationDelay: `${index * 0.1}s` }}
                             >
                                 {/* Edit button */}
                                 <button
@@ -131,7 +131,7 @@ const GoalsSection = ({ metas = [], habitos = [], habitHistory = new Map(), onAd
                     {!isFormOpen ? (
                         <button
                             onClick={() => setIsFormOpen(true)}
-                            className="bg-zinc-900/50 rounded-xl p-4 border border-dashed border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900 transition-all duration-200 flex flex-col items-center justify-center gap-2 min-h-[120px]"
+                            className="bg-zinc-900/50 rounded-xl p-4 border border-dashed border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900 transition-all duration-200 flex flex-col items-center justify-center gap-2 min-h-[120px] btn-press hover:scale-[1.02]"
                         >
                             <Plus className="w-6 h-6 text-zinc-500" />
                             <span className="text-zinc-500 text-sm font-medium">Nueva Meta</span>

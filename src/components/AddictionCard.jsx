@@ -24,7 +24,7 @@ const AddictionCard = ({ habito, onReiniciar, onEliminar }) => {
 
     return (
         <div
-            className="group relative bg-zinc-900 rounded-xl p-4 border border-zinc-800 hover:border-zinc-700 transition-all duration-200"
+            className="group relative bg-zinc-900 rounded-xl p-4 border border-zinc-800 hover:border-zinc-700 transition-all duration-200 card-hover"
             onMouseEnter={() => setShowDelete(true)}
             onMouseLeave={() => setShowDelete(false)}
         >

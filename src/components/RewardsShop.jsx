@@ -123,9 +123,9 @@ export default function RewardsShop({ currentXP = 0, onPurchase }) {
     return (
         <section className="mb-8">
             {/* Header with XP Display */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 animate-fade-in-up">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 animate-scale-bounce">
                         <Coins className="w-5 h-5 text-white" />
                     </div>
                     <div>
@@ -133,8 +133,8 @@ export default function RewardsShop({ currentXP = 0, onPurchase }) {
                         <p className="text-xs text-zinc-500">Gasta tu XP en recompensas</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-500/30 rounded-xl">
-                    <Sparkles className="w-4 h-4 text-yellow-400" />
+                <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-500/30 rounded-xl glow-amber">
+                    <Sparkles className="w-4 h-4 text-yellow-400 animate-wiggle" />
                     <span className="text-yellow-400 font-bold text-lg">{currentXP}</span>
                     <span className="text-yellow-500/60 text-sm">XP</span>
                 </div>
@@ -144,7 +144,8 @@ export default function RewardsShop({ currentXP = 0, onPurchase }) {
             {!isFormOpen ? (
                 <button
                     onClick={() => setIsFormOpen(true)}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 mb-4 bg-zinc-900/50 hover:bg-zinc-900 border border-dashed border-zinc-700 hover:border-amber-500/50 rounded-xl text-zinc-400 hover:text-amber-400 transition-all duration-200"
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 mb-4 bg-zinc-900/50 hover:bg-zinc-900 border border-dashed border-zinc-700 hover:border-amber-500/50 rounded-xl text-zinc-400 hover:text-amber-400 transition-all duration-200 btn-press animate-fade-in-up"
+                    style={{ animationDelay: '0.1s' }}
                 >
                     <Plus className="w-5 h-5" />
                     <span className="font-medium">Agregar Recompensa</span>
@@ -229,17 +230,18 @@ export default function RewardsShop({ currentXP = 0, onPurchase }) {
                 </div>
             ) : (
                 <div className="grid grid-cols-2 gap-3">
-                    {rewards.map((item) => {
+                    {rewards.map((item, index) => {
                         const canAfford = currentXP >= item.costo;
                         const isPurchasing = purchasing === item.id;
 
                         return (
                             <div
                                 key={item.id}
-                                className={`relative bg-zinc-900 rounded-xl p-4 border transition-all duration-200 group ${canAfford
-                                    ? 'border-zinc-800 hover:border-amber-500/50 hover:shadow-lg hover:shadow-amber-500/5'
+                                className={`stagger-item relative bg-zinc-900 rounded-xl p-4 border transition-all duration-200 group card-hover ${canAfford
+                                    ? 'border-zinc-800 hover:border-amber-500/50 hover:shadow-lg hover:shadow-amber-500/10'
                                     : 'border-zinc-800/50 opacity-60'
                                     }`}
+                                style={{ animationDelay: `${0.15 + index * 0.05}s` }}
                             >
                                 {/* Delete button */}
                                 <button
@@ -268,8 +270,8 @@ export default function RewardsShop({ currentXP = 0, onPurchase }) {
                                     type="button"
                                     onClick={() => buyReward(item)}
                                     disabled={!canAfford || isPurchasing}
-                                    className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${canAfford
-                                        ? 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20 text-amber-400 hover:from-yellow-500/30 hover:to-amber-500/30'
+                                    className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all btn-press ${canAfford
+                                        ? 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20 text-amber-400 hover:from-yellow-500/30 hover:to-amber-500/30 hover:scale-105'
                                         : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
                                         }`}
                                 >
@@ -290,7 +292,7 @@ export default function RewardsShop({ currentXP = 0, onPurchase }) {
 
             {/* Toast Notification */}
             {notification && (
-                <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 bg-zinc-900/95 border border-yellow-500/30 shadow-2xl shadow-black/50 text-zinc-100 px-6 py-3 rounded-2xl font-semibold text-sm flex items-center gap-2 backdrop-blur-sm transition-all duration-300">
+                <div className="fixed bottom-20 left-1/2 z-50 bg-zinc-900/95 border border-yellow-500/30 shadow-2xl shadow-black/50 text-zinc-100 px-6 py-3 rounded-2xl font-semibold text-sm flex items-center gap-2 backdrop-blur-sm toast-slide-up">
                     {notification}
                 </div>
             )}

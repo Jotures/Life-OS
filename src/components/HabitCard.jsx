@@ -9,7 +9,7 @@ const HabitCard = ({ habito, onMarcar, onEliminar, onEdit, completadoHoy }) => {
 
     return (
         <div
-            className="group relative bg-zinc-900 rounded-xl p-4 border border-zinc-800 hover:border-zinc-700 transition-all duration-200"
+            className="group relative bg-zinc-900 rounded-xl p-4 border border-zinc-800 hover:border-zinc-700 transition-all duration-200 card-hover"
             onMouseEnter={() => setShowDelete(true)}
             onMouseLeave={() => setShowDelete(false)}
         >
@@ -19,13 +19,13 @@ const HabitCard = ({ habito, onMarcar, onEliminar, onEdit, completadoHoy }) => {
                     {/* Checkbox */}
                     <button
                         onClick={onMarcar}
-                        className={`flex-shrink-0 w-6 h-6 mt-0.5 rounded-md border-2 flex items-center justify-center transition-all duration-200 ${completadoHoy
-                            ? 'bg-zinc-100 border-zinc-100'
-                            : 'border-zinc-600 hover:border-zinc-400'
+                        className={`flex-shrink-0 w-6 h-6 mt-0.5 rounded-md border-2 flex items-center justify-center transition-all duration-200 checkbox-animate ${completadoHoy
+                            ? 'bg-emerald-500 border-emerald-500 shadow-lg shadow-emerald-500/30'
+                            : 'border-zinc-600 hover:border-zinc-400 hover:scale-110'
                             }`}
                     >
                         {completadoHoy && (
-                            <Check className="w-4 h-4 text-zinc-900" strokeWidth={3} />
+                            <Check className="w-4 h-4 text-white animate-scale-bounce" strokeWidth={3} />
                         )}
                     </button>
 

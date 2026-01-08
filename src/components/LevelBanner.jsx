@@ -32,11 +32,11 @@ const LevelBanner = ({ profile, onOpenShop }) => {
     const progressPercent = Math.min(100, Math.round((xpIntoLevel / xpNeededForLevel) * 100));
 
     return (
-        <div className="bg-zinc-900 border border-zinc-800 p-4 mb-6 rounded-xl">
+        <div className="bg-zinc-900 border border-zinc-800 p-4 mb-6 rounded-xl animate-fade-in-up">
             {/* Header Row */}
             <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg">
+                    <div className="p-1.5 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg shadow-lg shadow-purple-500/20">
                         <Zap className="w-4 h-4 text-white" />
                     </div>
                     <span className="text-lg font-bold text-zinc-100">
@@ -54,7 +54,7 @@ const LevelBanner = ({ profile, onOpenShop }) => {
                     {onOpenShop && (
                         <button
                             onClick={onOpenShop}
-                            className="bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 p-2 rounded-xl transition-colors border border-yellow-500/20 flex items-center gap-1.5"
+                            className="bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 p-2 rounded-xl transition-all border border-yellow-500/20 flex items-center gap-1.5 btn-press hover:scale-105"
                             title="Abrir Tienda"
                         >
                             <ShoppingBag className="w-4 h-4" />

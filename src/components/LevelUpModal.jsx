@@ -19,8 +19,8 @@ export function LevelUpModal({ newLevel, onClose }) {
     }, []);
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-zinc-900 border-2 border-yellow-500 p-8 rounded-3xl shadow-2xl shadow-yellow-500/20 text-center max-w-sm mx-4 transform animate-in zoom-in-95 duration-300 relative overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in">
+            <div className="bg-zinc-900 border-2 border-yellow-500 p-8 rounded-3xl shadow-2xl shadow-yellow-500/20 text-center max-w-sm mx-4 animate-scale-bounce relative overflow-hidden">
 
                 {/* Glowing Background Effect */}
                 <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-yellow-500/10 to-transparent pointer-events-none" />
@@ -40,7 +40,7 @@ export function LevelUpModal({ newLevel, onClose }) {
 
                     <button
                         onClick={onClose}
-                        className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 px-6 rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-yellow-500/25"
+                        className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 px-6 rounded-xl transition-all btn-press hover:scale-105 shadow-lg shadow-yellow-500/25"
                     >
                         ¡CONTINUAR! ⚔️
                     </button>
