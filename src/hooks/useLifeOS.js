@@ -434,17 +434,19 @@ export const useLifeOS = () => {
 
         // STEP 1: LOG RELAPSE TO HISTORY (before resetting!)
         const rachaActual = habito.racha || 0;
-        try {
-            await supabase
-                .from('historial_recaidas')
-                .insert({
-                    habito_id: id,
-                    fecha: new Date().toISOString(),
-                    racha_perdida: rachaActual
-                });
-            console.log(`Relapse logged: ${habito.nombre}, streak lost: ${rachaActual} days`);
-        } catch (err) {
-            console.error('Error logging relapse:', err);
+        const { data: insertData, error: insertError } = await supabase
+            .from('historial_recaidas')
+            .insert([{
+                habito_id: id,
+                fecha: new Date().toISOString(),
+                racha_perdida: rachaActual
+            }])
+            .select();
+
+        if (insertError) {
+            console.error('Error logging relapse to historial_recaidas:', insertError);
+        } else {
+            console.log(`✅ Relapse logged: ${habito.nombre}, streak lost: ${rachaActual} days`, insertData);
         }
 
         // STEP 2: Reset the habit
@@ -456,13 +458,13 @@ export const useLifeOS = () => {
                 .update({
                     racha: 0,
                     fecha_inicio: nuevaFechaInicio,
-                    ultima_recompensa_xp: null // Reset XP tracking
+                    ultima_recompensa: nuevaFechaInicio // SYNC: XP clock = Vice clock
                 })
                 .eq('id', id);
 
             if (error) throw error;
             setHabitos(prev => prev.map(h =>
-                h.id === id ? { ...h, racha: 0, fecha_inicio: nuevaFechaInicio, ultima_recompensa_xp: null } : h
+                h.id === id ? { ...h, racha: 0, fecha_inicio: nuevaFechaInicio, ultima_recompensa: nuevaFechaInicio } : h
             ));
 
             // HARDCORE MODE: Apply -50 XP Penalty for relapse

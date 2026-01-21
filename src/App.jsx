@@ -90,8 +90,8 @@ function App() {
             fechaInicio.setHours(0, 0, 0, 0);
 
             // Last XP reward date (use fecha_inicio if never rewarded)
-            const ultimaRecompensa = vicio.ultima_recompensa_xp
-                ? new Date(vicio.ultima_recompensa_xp)
+            const ultimaRecompensa = vicio.ultima_recompensa
+                ? new Date(vicio.ultima_recompensa)
                 : fechaInicio;
             ultimaRecompensa.setHours(0, 0, 0, 0);
 
@@ -105,10 +105,12 @@ function App() {
                 totalXp += xpGain;
                 viciosConXP.push({ id: vicio.id, nombre: vicio.nombre, dias: diasPendientes, xp: xpGain });
 
-                // Update ultima_recompensa_xp to TODAY
+                // Update ultima_recompensa by adding exact days (anti-drift)
+                const nuevaRecompensa = new Date(ultimaRecompensa);
+                nuevaRecompensa.setDate(nuevaRecompensa.getDate() + diasPendientes);
                 await supabase
                     .from('habitos')
-                    .update({ ultima_recompensa_xp: now.toISOString() })
+                    .update({ ultima_recompensa: nuevaRecompensa.toISOString() })
                     .eq('id', vicio.id);
             }
         }
