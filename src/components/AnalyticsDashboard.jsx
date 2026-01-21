@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Activity, Flame, Target, TrendingUp, Zap, Shield } from 'lucide-react';
+import { Activity, Flame, Target, TrendingUp, Zap, Shield, AlertTriangle, TrendingDown } from 'lucide-react';
 import {
     ResponsiveContainer,
     RadarChart,
@@ -9,15 +9,86 @@ import {
     Radar,
     AreaChart,
     Area,
+    BarChart,
+    Bar,
+    LineChart,
+    Line,
     XAxis,
     YAxis,
-    Tooltip
+    Tooltip,
+    CartesianGrid
 } from 'recharts';
 import { supabase } from '../supabaseClient';
 
 const AnalyticsDashboard = ({ habitos = [], vicios = [], metas = [], profile }) => {
     const [activityData, setActivityData] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [relapseByDay, setRelapseByDay] = useState([]);
+    const [streakEvolution, setStreakEvolution] = useState([]);
+    const [relapseLoading, setRelapseLoading] = useState(true);
+
+    // Day names in Spanish for chart
+    const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+    // Fetch relapse data for visualizations
+    useEffect(() => {
+        const fetchRelapseData = async () => {
+            if (vicios.length === 0) {
+                setRelapseLoading(false);
+                return;
+            }
+
+            try {
+                setRelapseLoading(true);
+
+                // Get all relapse records
+                const { data: relapses, error } = await supabase
+                    .from('historial_recaidas')
+                    .select('*')
+                    .order('fecha', { ascending: true });
+
+                if (error) throw error;
+
+                if (!relapses || relapses.length === 0) {
+                    setRelapseByDay([]);
+                    setStreakEvolution([]);
+                    setRelapseLoading(false);
+                    return;
+                }
+
+                // 1. Group by day of week for "Días de Peligro" chart
+                const dayCount = [0, 0, 0, 0, 0, 0, 0]; // Sun-Sat
+                relapses.forEach(r => {
+                    const date = new Date(r.fecha);
+                    dayCount[date.getDay()]++;
+                });
+
+                const dayData = DIAS_SEMANA.map((name, idx) => ({
+                    dia: name,
+                    recaidas: dayCount[idx]
+                }));
+                setRelapseByDay(dayData);
+
+                // 2. Streak evolution for "Evolución de Disciplina" chart
+                const evolutionData = relapses.map(r => {
+                    const date = new Date(r.fecha);
+                    return {
+                        fecha: date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
+                        racha: r.racha_perdida || 0,
+                        fullDate: r.fecha
+                    };
+                });
+                setStreakEvolution(evolutionData);
+
+            } catch (err) {
+                console.error('Error fetching relapse data:', err);
+            } finally {
+                setRelapseLoading(false);
+            }
+        };
+
+        fetchRelapseData();
+    }, [vicios.length]);
 
     // Fetch activity data for the last 14 days
     useEffect(() => {
@@ -317,6 +388,142 @@ const AnalyticsDashboard = ({ habitos = [], vicios = [], metas = [], profile }) 
                         })}
                     </div>
                 </div>
+            )}
+
+            {/* ANÁLISIS DE VICIOS - New Section */}
+            {vicios.length > 0 && (
+                <>
+                    {/* Section Header */}
+                    <div className="flex items-center gap-2 pt-4">
+                        <AlertTriangle className="w-5 h-5 text-amber-400" />
+                        <h2 className="text-lg font-semibold text-zinc-100">Análisis de Vicios</h2>
+                    </div>
+
+                    {/* Días de Peligro - Bar Chart */}
+                    <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
+                        <div className="flex items-center gap-2 mb-4">
+                            <AlertTriangle className="w-4 h-4 text-red-400" />
+                            <h3 className="text-zinc-100 font-medium">Días de Peligro</h3>
+                        </div>
+                        <p className="text-zinc-500 text-xs mb-3">¿Qué días de la semana recaes más?</p>
+
+                        {relapseLoading ? (
+                            <div className="h-48 flex items-center justify-center text-zinc-500">
+                                Cargando...
+                            </div>
+                        ) : relapseByDay.length > 0 && relapseByDay.some(d => d.recaidas > 0) ? (
+                            <ResponsiveContainer width="100%" height={180}>
+                                <BarChart data={relapseByDay}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" vertical={false} />
+                                    <XAxis
+                                        dataKey="dia"
+                                        tick={{ fill: '#71717a', fontSize: 11 }}
+                                        axisLine={{ stroke: '#3f3f46' }}
+                                        tickLine={false}
+                                    />
+                                    <YAxis
+                                        tick={{ fill: '#71717a', fontSize: 10 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        width={25}
+                                        allowDecimals={false}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: '#18181b',
+                                            border: '1px solid #3f3f46',
+                                            borderRadius: '8px',
+                                            color: '#fafafa'
+                                        }}
+                                        formatter={(value) => [value, 'Recaídas']}
+                                    />
+                                    <Bar
+                                        dataKey="recaidas"
+                                        fill="#ef4444"
+                                        radius={[4, 4, 0, 0]}
+                                        maxBarSize={40}
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-32 flex flex-col items-center justify-center text-zinc-500 bg-zinc-800/30 rounded-lg">
+                                <Shield className="w-8 h-8 mb-2 text-emerald-500/50" />
+                                <p className="text-sm">Sin recaídas registradas</p>
+                                <p className="text-xs text-zinc-600">¡Mantén tu racha!</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Evolución de Disciplina - Line Chart */}
+                    <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
+                        <div className="flex items-center gap-2 mb-4">
+                            <TrendingUp className="w-4 h-4 text-emerald-400" />
+                            <h3 className="text-zinc-100 font-medium">Evolución de Disciplina</h3>
+                        </div>
+                        <p className="text-zinc-500 text-xs mb-3">¿Tus rachas son cada vez más largas?</p>
+
+                        {relapseLoading ? (
+                            <div className="h-48 flex items-center justify-center text-zinc-500">
+                                Cargando...
+                            </div>
+                        ) : streakEvolution.length >= 2 ? (
+                            <ResponsiveContainer width="100%" height={180}>
+                                <LineChart data={streakEvolution}>
+                                    <defs>
+                                        <linearGradient id="colorStreak" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" vertical={false} />
+                                    <XAxis
+                                        dataKey="fecha"
+                                        tick={{ fill: '#71717a', fontSize: 10 }}
+                                        axisLine={{ stroke: '#3f3f46' }}
+                                        tickLine={false}
+                                    />
+                                    <YAxis
+                                        tick={{ fill: '#71717a', fontSize: 10 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        width={30}
+                                        allowDecimals={false}
+                                        label={{
+                                            value: 'Días',
+                                            angle: -90,
+                                            position: 'insideLeft',
+                                            fill: '#71717a',
+                                            fontSize: 10
+                                        }}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: '#18181b',
+                                            border: '1px solid #3f3f46',
+                                            borderRadius: '8px',
+                                            color: '#fafafa'
+                                        }}
+                                        formatter={(value) => [`${value} días`, 'Racha perdida']}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="racha"
+                                        stroke="#10b981"
+                                        strokeWidth={2}
+                                        dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                                        activeDot={{ r: 6, fill: '#10b981' }}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-32 flex flex-col items-center justify-center text-zinc-500 bg-zinc-800/30 rounded-lg">
+                                <TrendingUp className="w-8 h-8 mb-2 text-zinc-600" />
+                                <p className="text-sm">Datos insuficientes</p>
+                                <p className="text-xs text-zinc-600">Se necesitan al menos 2 recaídas para mostrar tendencia</p>
+                            </div>
+                        )}
+                    </div>
+                </>
             )}
         </div>
     );

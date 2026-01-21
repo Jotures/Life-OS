@@ -432,17 +432,37 @@ export const useLifeOS = () => {
 
         if (!habito || habito.tipo !== 'dejar') return;
 
+        // STEP 1: LOG RELAPSE TO HISTORY (before resetting!)
+        const rachaActual = habito.racha || 0;
+        try {
+            await supabase
+                .from('historial_recaidas')
+                .insert({
+                    habito_id: id,
+                    fecha: new Date().toISOString(),
+                    racha_perdida: rachaActual
+                });
+            console.log(`Relapse logged: ${habito.nombre}, streak lost: ${rachaActual} days`);
+        } catch (err) {
+            console.error('Error logging relapse:', err);
+        }
+
+        // STEP 2: Reset the habit
         const nuevaFechaInicio = new Date().toISOString();
 
         try {
             const { error } = await supabase
                 .from('habitos')
-                .update({ racha: 0, fecha_inicio: nuevaFechaInicio })
+                .update({
+                    racha: 0,
+                    fecha_inicio: nuevaFechaInicio,
+                    ultima_recompensa_xp: null // Reset XP tracking
+                })
                 .eq('id', id);
 
             if (error) throw error;
             setHabitos(prev => prev.map(h =>
-                h.id === id ? { ...h, racha: 0, fecha_inicio: nuevaFechaInicio } : h
+                h.id === id ? { ...h, racha: 0, fecha_inicio: nuevaFechaInicio, ultima_recompensa_xp: null } : h
             ));
 
             // HARDCORE MODE: Apply -50 XP Penalty for relapse

@@ -65,9 +65,13 @@ function App() {
         }
     }, []);
 
-    // Check vice rewards (passive XP for staying clean)
+    // Check vice rewards (passive XP for staying clean) - SYNC CHECK LOGIC
     const checkViceRewards = useCallback(async (currentProfile) => {
         if (!currentProfile) return;
+
+        const XP_POR_DIA = 10;
+        const now = new Date();
+        now.setHours(0, 0, 0, 0); // Normalize to start of day
 
         // 1. Get only vices
         const { data: vicios, error } = await supabase
@@ -78,39 +82,53 @@ function App() {
         if (error || !vicios || vicios.length === 0) return;
 
         let totalXp = 0;
+        const viciosConXP = [];
 
         for (const vicio of vicios) {
-            const lastReward = new Date(vicio.ultima_recompensa || vicio.created_at);
-            const now = new Date();
-            const diffTime = Math.abs(now - lastReward);
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            // Baseline: fecha_inicio (resets on relapse)
+            const fechaInicio = new Date(vicio.fecha_inicio);
+            fechaInicio.setHours(0, 0, 0, 0);
 
-            if (diffDays >= 1) {
-                const xpGain = diffDays * 10;
+            // Last XP reward date (use fecha_inicio if never rewarded)
+            const ultimaRecompensa = vicio.ultima_recompensa_xp
+                ? new Date(vicio.ultima_recompensa_xp)
+                : fechaInicio;
+            ultimaRecompensa.setHours(0, 0, 0, 0);
 
-                // Update the timestamp for this specific habit
+            // Calculate days
+            const diasLimpio = Math.floor((now - fechaInicio) / (1000 * 60 * 60 * 24));
+            const diasPagados = Math.floor((ultimaRecompensa - fechaInicio) / (1000 * 60 * 60 * 24));
+            const diasPendientes = diasLimpio - diasPagados;
+
+            if (diasPendientes > 0) {
+                const xpGain = diasPendientes * XP_POR_DIA;
+                totalXp += xpGain;
+                viciosConXP.push({ id: vicio.id, nombre: vicio.nombre, dias: diasPendientes, xp: xpGain });
+
+                // Update ultima_recompensa_xp to TODAY
                 await supabase
                     .from('habitos')
-                    .update({ ultima_recompensa: new Date().toISOString() })
+                    .update({ ultima_recompensa_xp: now.toISOString() })
                     .eq('id', vicio.id);
-
-                totalXp += xpGain;
             }
         }
 
         // 2. Update Profile XP if we earned anything
         if (totalXp > 0) {
             const newXp = currentProfile.xp + totalXp;
+            const newLevel = Math.floor(newXp / 100) + 1;
+
             await supabase
                 .from('perfil_jugador')
-                .update({ xp: newXp })
+                .update({ xp: newXp, nivel: newLevel })
                 .eq('id', currentProfile.id);
 
             // Refresh the profile to update UI
             fetchProfile();
 
-            // Show custom toast notification
-            setNotification(`¡Racha de disciplina! Ganaste ${totalXp} XP mientras dormías`);
+            // Show detailed notification
+            const diasTotales = viciosConXP.reduce((sum, v) => sum + v.dias, 0);
+            setNotification(`¡Racha de disciplina! Ganaste ${totalXp} XP por ${diasTotales} días limpio`);
             setTimeout(() => setNotification(null), 4000);
         }
     }, [fetchProfile]);
