@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2 } from 'lucide-react';
+import { X, Trash2, Activity, Scroll, Target, Sparkles } from 'lucide-react';
 
 const EditGoalModal = ({ isOpen, meta, onSave, onDelete, onClose }) => {
     const [nombre, setNombre] = useState('');
     const [color, setColor] = useState('#3B82F6');
+    const [targetValue, setTargetValue] = useState('');
+    const [xpReward, setXpReward] = useState('');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const colorOptions = [
@@ -17,11 +19,15 @@ const EditGoalModal = ({ isOpen, meta, onSave, onDelete, onClose }) => {
         '#F97316', // Orange
     ];
 
+    const isQuest = meta?.type === 'quest';
+
     // Reset form when modal opens with new goal
     useEffect(() => {
         if (meta) {
             setNombre(meta.nombre || '');
             setColor(meta.color || '#3B82F6');
+            setTargetValue(meta.target_value?.toString() || '');
+            setXpReward(meta.xp_reward?.toString() || '');
             setShowDeleteConfirm(false);
         }
     }, [meta]);
@@ -29,10 +35,18 @@ const EditGoalModal = ({ isOpen, meta, onSave, onDelete, onClose }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (nombre.trim() && meta) {
-            onSave(meta.id, {
+            const updates = {
                 nombre: nombre.trim(),
                 color
-            });
+            };
+
+            // Add quest-specific fields if it's a quest
+            if (isQuest) {
+                updates.target_value = parseInt(targetValue, 10);
+                updates.xp_reward = parseInt(xpReward, 10);
+            }
+
+            onSave(meta.id, updates);
             onClose();
         }
     };
@@ -64,11 +78,22 @@ const EditGoalModal = ({ isOpen, meta, onSave, onDelete, onClose }) => {
                     <X className="w-5 h-5" />
                 </button>
 
-                <h2 className="text-xl font-semibold text-zinc-100 mb-2">
-                    Editar Meta
-                </h2>
+                {/* Header with type indicator */}
+                <div className="flex items-center gap-2 mb-2">
+                    {isQuest ? (
+                        <Scroll className="w-5 h-5 text-yellow-400" />
+                    ) : (
+                        <Activity className="w-5 h-5 text-emerald-400" />
+                    )}
+                    <h2 className="text-xl font-semibold text-zinc-100">
+                        Editar {isQuest ? 'Misión' : 'Signo Vital'}
+                    </h2>
+                </div>
                 <p className="text-zinc-400 text-sm mb-6">
-                    Modifica el nombre o el color de tu meta
+                    {isQuest
+                        ? 'Modifica los detalles de tu misión'
+                        : 'Modifica el nombre o el color'
+                    }
                 </p>
 
                 {!showDeleteConfirm ? (
@@ -76,7 +101,7 @@ const EditGoalModal = ({ isOpen, meta, onSave, onDelete, onClose }) => {
                         {/* Name input */}
                         <div className="mb-4">
                             <label className="block text-zinc-400 text-sm mb-2">
-                                Nombre de la meta
+                                Nombre
                             </label>
                             <input
                                 type="text"
@@ -89,7 +114,7 @@ const EditGoalModal = ({ isOpen, meta, onSave, onDelete, onClose }) => {
                         </div>
 
                         {/* Color picker */}
-                        <div className="mb-6">
+                        <div className="mb-4">
                             <label className="block text-zinc-400 text-sm mb-2">
                                 Color
                             </label>
@@ -100,14 +125,51 @@ const EditGoalModal = ({ isOpen, meta, onSave, onDelete, onClose }) => {
                                         type="button"
                                         onClick={() => setColor(c)}
                                         className={`w-8 h-8 rounded-full transition-all ${color === c
-                                            ? 'ring-2 ring-offset-2 ring-offset-zinc-900'
-                                            : 'hover:scale-110'
+                                                ? 'ring-2 ring-offset-2 ring-offset-zinc-900'
+                                                : 'hover:scale-110'
                                             }`}
                                         style={{ backgroundColor: c, ringColor: c }}
                                     />
                                 ))}
                             </div>
                         </div>
+
+                        {/* Quest-specific fields */}
+                        {isQuest && (
+                            <>
+                                {/* Target Value */}
+                                <div className="mb-4">
+                                    <label className="block text-zinc-400 text-sm mb-2">
+                                        <Target className="w-3.5 h-3.5 inline mr-1" />
+                                        Objetivo
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={targetValue}
+                                        onChange={(e) => setTargetValue(e.target.value)}
+                                        placeholder="Ej: 1000"
+                                        min="1"
+                                        className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors"
+                                    />
+                                </div>
+
+                                {/* XP Reward */}
+                                <div className="mb-6">
+                                    <label className="block text-zinc-400 text-sm mb-2">
+                                        <Sparkles className="w-3.5 h-3.5 inline mr-1" />
+                                        Recompensa XP
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={xpReward}
+                                        onChange={(e) => setXpReward(e.target.value)}
+                                        placeholder="Ej: 500"
+                                        min="1"
+                                        className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors"
+                                    />
+                                </div>
+                            </>
+                        )}
 
                         {/* Buttons */}
                         <div className="flex gap-3">
@@ -120,7 +182,7 @@ const EditGoalModal = ({ isOpen, meta, onSave, onDelete, onClose }) => {
                             </button>
                             <button
                                 type="submit"
-                                disabled={!nombre.trim()}
+                                disabled={!nombre.trim() || (isQuest && (!targetValue || !xpReward))}
                                 className="flex-1 bg-zinc-100 hover:bg-white text-zinc-900 font-medium py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Guardar Cambios
@@ -132,10 +194,13 @@ const EditGoalModal = ({ isOpen, meta, onSave, onDelete, onClose }) => {
                     <div>
                         <div className="bg-red-900/20 border border-red-800/50 rounded-xl p-4 mb-6">
                             <p className="text-red-400 text-sm">
-                                ¿Estás seguro de eliminar la meta <strong>"{meta.nombre}"</strong>?
+                                ¿Estás seguro de eliminar <strong>"{meta.nombre}"</strong>?
                             </p>
                             <p className="text-zinc-500 text-xs mt-2">
-                                Los hábitos vinculados perderán su relación con esta meta.
+                                {isQuest
+                                    ? 'Se perderá el progreso de esta misión.'
+                                    : 'Los hábitos vinculados perderán su relación con esta meta.'
+                                }
                             </p>
                         </div>
                         <div className="flex gap-3">

@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Target, ShieldOff, Zap, Flag, Clock, BarChart3, LayoutGrid, ShoppingBag } from 'lucide-react';
 import { useLifeOS } from './hooks/useLifeOS';
 import { supabase } from './supabaseClient';
+import confetti from 'canvas-confetti';
 import Header from './components/Header';
 import HabitCard from './components/HabitCard';
 import AddictionCard from './components/AddictionCard';
 import NewHabitModal from './components/NewHabitModal';
+import NewGoalModal from './components/NewGoalModal';
 import DeleteConfirmModal from './components/DeleteConfirmModal';
 import EditHabitModal from './components/EditHabitModal';
 import EditGoalModal from './components/EditGoalModal';
@@ -20,6 +22,7 @@ import LevelUpModal from './components/LevelUpModal';
 function App() {
     const [activeTab, setActiveTab] = useState('tracker');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
     const [habitToDelete, setHabitToDelete] = useState(null);
     const [habitToEdit, setHabitToEdit] = useState(null);
     const [metaToEdit, setMetaToEdit] = useState(null);
@@ -185,6 +188,39 @@ function App() {
         }
     };
 
+    // Handle quest completion - award XP and delete the quest
+    const handleQuestComplete = async (quest) => {
+        const xpReward = quest.xp_reward || 500;
+
+        // Trigger confetti celebration
+        confetti({
+            particleCount: 150,
+            spread: 80,
+            origin: { y: 0.6 },
+            colors: ['#FCD34D', '#F59E0B', '#FFFFFF', '#10B981']
+        });
+
+        // Award XP to player profile
+        if (playerProfile) {
+            const newXP = playerProfile.xp + xpReward;
+            const newLevel = Math.floor(newXP / 100) + 1;
+
+            await supabase
+                .from('perfil_jugador')
+                .update({ xp: newXP, nivel: newLevel })
+                .eq('id', playerProfile.id);
+
+            setPlayerProfile(prev => ({ ...prev, xp: newXP, nivel: newLevel }));
+        }
+
+        // Delete the completed quest
+        await eliminarMeta(quest.id);
+
+        // Show notification
+        setNotification(`¡Misión completada! +${xpReward} XP`);
+        setTimeout(() => setNotification(null), 4000);
+    };
+
     return (
         <div className="min-h-screen bg-zinc-950 py-8 px-4">
             <div className="max-w-2xl mx-auto">
@@ -311,13 +347,22 @@ function App() {
 
                 {/* PLANNING TAB: Goals management */}
                 {activeTab === 'planning' && (
-                    <GoalsSection
-                        metas={metas}
-                        habitos={habitosConstruir}
-                        habitHistory={habitHistory}
-                        onAddMeta={agregarMeta}
-                        onEditMeta={setMetaToEdit}
-                    />
+                    <>
+                        <GoalsSection
+                            metas={metas}
+                            habitos={habitosConstruir}
+                            habitHistory={habitHistory}
+                            onAddMeta={() => setIsGoalModalOpen(true)}
+                            onEditMeta={setMetaToEdit}
+                            onUpdateMeta={actualizarMeta}
+                            onCompleteMeta={handleQuestComplete}
+                        />
+                        <NewGoalModal
+                            isOpen={isGoalModalOpen}
+                            onClose={() => setIsGoalModalOpen(false)}
+                            onSubmit={agregarMeta}
+                        />
+                    </>
                 )}
 
                 {/* FOCUS TAB: Standalone Pomodoro Timer */}

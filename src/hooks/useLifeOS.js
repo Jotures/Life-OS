@@ -172,12 +172,16 @@ export const useLifeOS = () => {
         }
     }, [metas]);
 
-    // Add a new goal
-    const agregarMeta = useCallback(async (nombre, descripcion = '', color = '#3B82F6') => {
+    // Add a new goal (Vital or Quest)
+    const agregarMeta = useCallback(async ({ nombre, descripcion = '', color = '#3B82F6', type = 'vital', target_value = null, xp_reward = null }) => {
         const nuevaMeta = {
             nombre: nombre.trim(),
             descripcion: descripcion.trim(),
-            color
+            color,
+            type,
+            target_value: type === 'quest' ? target_value : null,
+            current_value: type === 'quest' ? 0 : null,
+            xp_reward: type === 'quest' ? xp_reward : null
         };
 
         try {

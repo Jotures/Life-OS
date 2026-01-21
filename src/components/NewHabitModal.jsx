@@ -130,19 +130,19 @@ const NewHabitModal = ({ isOpen, onClose, onSubmit, metas = [] }) => {
                             autoFocus
                         />
 
-                        {/* Goal Selector */}
-                        {metas.length > 0 && (
+                        {/* Goal Selector - Only show Vitals */}
+                        {metas.filter(m => m.type === 'vital' || !m.type).length > 0 && (
                             <div className="mb-4">
                                 <label className="block text-zinc-400 text-sm mb-2">
-                                    Vincular a Meta (opcional)
+                                    Vincular a Signo Vital (opcional)
                                 </label>
                                 <select
                                     value={metaId}
                                     onChange={(e) => setMetaId(e.target.value)}
                                     className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors appearance-none cursor-pointer"
                                 >
-                                    <option value="">Sin meta</option>
-                                    {metas.map((m) => (
+                                    <option value="">Sin vincular</option>
+                                    {metas.filter(m => m.type === 'vital' || !m.type).map((m) => (
                                         <option key={m.id} value={m.id}>
                                             {m.nombre}
                                         </option>
