@@ -37,6 +37,7 @@ function App() {
         habitosDejar,
         metas,
         fechaNacimiento,
+        viceXPInfo,
         agregarHabito,
         agregarMeta,
         actualizarHabito,
@@ -65,96 +66,18 @@ function App() {
         }
     }, []);
 
-    // Check vice rewards (passive XP for staying clean) - SYNC CHECK LOGIC
-    const checkViceRewards = useCallback(async (currentProfile) => {
-        if (!currentProfile) return;
-
-        const XP_POR_DIA = 10;
-        const now = new Date();
-        now.setHours(0, 0, 0, 0); // Normalize to start of day
-
-        // 1. Get only vices
-        const { data: vicios, error } = await supabase
-            .from('habitos')
-            .select('*')
-            .eq('tipo', 'dejar');
-
-        if (error || !vicios || vicios.length === 0) return;
-
-        let totalXp = 0;
-        const viciosConXP = [];
-
-        for (const vicio of vicios) {
-            // Baseline: fecha_inicio (resets on relapse)
-            const fechaInicio = new Date(vicio.fecha_inicio);
-            fechaInicio.setHours(0, 0, 0, 0);
-
-            // Last XP reward date (use fecha_inicio if never rewarded)
-            const ultimaRecompensa = vicio.ultima_recompensa
-                ? new Date(vicio.ultima_recompensa)
-                : fechaInicio;
-            ultimaRecompensa.setHours(0, 0, 0, 0);
-
-            // Calculate days
-            const diasLimpio = Math.floor((now - fechaInicio) / (1000 * 60 * 60 * 24));
-            const diasPagados = Math.floor((ultimaRecompensa - fechaInicio) / (1000 * 60 * 60 * 24));
-            const diasPendientes = diasLimpio - diasPagados;
-
-            if (diasPendientes > 0) {
-                const xpGain = diasPendientes * XP_POR_DIA;
-                totalXp += xpGain;
-                viciosConXP.push({ id: vicio.id, nombre: vicio.nombre, dias: diasPendientes, xp: xpGain });
-
-                // Update ultima_recompensa by adding exact days (anti-drift)
-                const nuevaRecompensa = new Date(ultimaRecompensa);
-                nuevaRecompensa.setDate(nuevaRecompensa.getDate() + diasPendientes);
-                await supabase
-                    .from('habitos')
-                    .update({ ultima_recompensa: nuevaRecompensa.toISOString() })
-                    .eq('id', vicio.id);
-            }
-        }
-
-        // 2. Update Profile XP if we earned anything
-        if (totalXp > 0) {
-            const newXp = currentProfile.xp + totalXp;
-            const newLevel = Math.floor(newXp / 100) + 1;
-
-            await supabase
-                .from('perfil_jugador')
-                .update({ xp: newXp, nivel: newLevel })
-                .eq('id', currentProfile.id);
-
-            // Refresh the profile to update UI
-            fetchProfile();
-
-            // Show detailed notification
-            const diasTotales = viciosConXP.reduce((sum, v) => sum + v.dias, 0);
-            setNotification(`¡Racha de disciplina! Ganaste ${totalXp} XP por ${diasTotales} días limpio`);
-            setTimeout(() => setNotification(null), 4000);
-        }
+    // Fetch profile on mount
+    useEffect(() => {
+        fetchProfile();
     }, [fetchProfile]);
 
-    // Fetch player profile on mount and check vice rewards
+    // React to vice XP earned (triggered by processHabits when racha increments)
     useEffect(() => {
-        const initializeApp = async () => {
-            const { data, error } = await supabase
-                .from('perfil_jugador')
-                .select('*')
-                .single();
-
-            if (error) {
-                console.error('Error fetching player profile:', error);
-                return;
-            }
-
-            setPlayerProfile(data);
-            // Check vice rewards with the freshly fetched profile
-            checkViceRewards(data);
-        };
-
-        initializeApp();
-    }, [checkViceRewards]);
+        if (!viceXPInfo) return;
+        fetchProfile();
+        setNotification(`¡Racha de disciplina! Ganaste ${viceXPInfo.totalXP} XP por ${viceXPInfo.dias} día${viceXPInfo.dias > 1 ? 's' : ''} limpio`);
+        setTimeout(() => setNotification(null), 4000);
+    }, [viceXPInfo, fetchProfile]);
 
     // Detect level-up and show celebration modal
     useEffect(() => {

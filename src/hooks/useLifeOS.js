@@ -2,14 +2,17 @@ import { useState, useEffect, useCallback } from 'react';
 import {
     format,
     parseISO,
-    isToday,
-    differenceInDays,
-    differenceInWeeks,
-    startOfDay,
-    isYesterday
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '../supabaseClient';
+
+// Helper: fecha local YYYY-MM-DD sin conversión a UTC
+const getLocalDateString = (date = new Date()) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
 
 const FECHA_NACIMIENTO_KEY = 'life-os-fecha-nacimiento';
 
@@ -28,6 +31,7 @@ export const useLifeOS = () => {
     const [fechaNacimiento, setFechaNacimientoState] = useState(getStoredFechaNacimiento);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [viceXPInfo, setViceXPInfo] = useState(null);
 
     // Fetch habits and goals from Supabase on mount
     useEffect(() => {
@@ -84,18 +88,27 @@ export const useLifeOS = () => {
     }, [fechaNacimiento]);
 
     // Process habits on mount and when date changes
+    // Includes passive XP for vices — awards XP when racha increments (day change)
     useEffect(() => {
+        const XP_POR_DIA_VICIO = 10;
+
         const processHabits = async () => {
             let updated = false;
             const updatedHabitos = [];
+            let totalViceXP = 0;
+            const viciosConXP = [];
+
+            const todayStr = getLocalDateString();
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = getLocalDateString(yesterday);
 
             for (const habito of habitos) {
                 if (habito.tipo === 'construir') {
-                    // For 'construir' habits: reset streak if yesterday wasn't marked
+                    // Reset streak if yesterday wasn't marked (string comparison, timezone-safe)
                     if (habito.ultima_fecha) {
-                        const lastDate = parseISO(habito.ultima_fecha);
-                        if (!isToday(lastDate) && !isYesterday(lastDate)) {
-                            // Missed more than one day - reset streak
+                        const lastDateStr = habito.ultima_fecha.split('T')[0];
+                        if (lastDateStr !== todayStr && lastDateStr !== yesterdayStr) {
                             if (habito.racha > 0) {
                                 updated = true;
                                 updatedHabitos.push({ ...habito, racha: 0 });
@@ -104,12 +117,39 @@ export const useLifeOS = () => {
                         }
                     }
                 } else if (habito.tipo === 'dejar') {
-                    // For 'dejar' habits: calculate days since start
-                    const fechaInicio = parseISO(habito.fecha_inicio);
-                    const diasLibre = differenceInDays(new Date(), fechaInicio);
+                    // Calculate days since start (timezone-safe)
+                    const fechaInicioStr = habito.fecha_inicio.split('T')[0];
+                    const fechaInicio = new Date(fechaInicioStr + 'T00:00:00');
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const diasLibre = Math.max(0, Math.round((today - fechaInicio) / (1000 * 60 * 60 * 24)));
+
                     if (diasLibre !== habito.racha) {
                         updated = true;
-                        updatedHabitos.push({ ...habito, racha: Math.max(0, diasLibre) });
+
+                        // Calculate XP: days pending since last reward
+                        const ultimaRecompensaStr = habito.ultima_recompensa
+                            ? habito.ultima_recompensa.split('T')[0]
+                            : fechaInicioStr;
+                        const ultimaRecompensa = new Date(ultimaRecompensaStr + 'T00:00:00');
+                        const diasPagados = Math.round((ultimaRecompensa - fechaInicio) / (1000 * 60 * 60 * 24));
+                        const diasPendientes = diasLibre - Math.max(0, diasPagados);
+
+                        if (diasPendientes > 0) {
+                            const xpGain = diasPendientes * XP_POR_DIA_VICIO;
+                            totalViceXP += xpGain;
+                            viciosConXP.push({ id: habito.id, nombre: habito.nombre, dias: diasPendientes, xp: xpGain });
+
+                            // Update ultima_recompensa to current day
+                            const nuevaRecompensa = new Date(ultimaRecompensa);
+                            nuevaRecompensa.setDate(nuevaRecompensa.getDate() + diasPendientes);
+                            await supabase
+                                .from('habitos')
+                                .update({ ultima_recompensa: nuevaRecompensa.toISOString() })
+                                .eq('id', habito.id);
+                        }
+
+                        updatedHabitos.push({ ...habito, racha: diasLibre });
                         continue;
                     }
                 }
@@ -118,7 +158,6 @@ export const useLifeOS = () => {
 
             if (updated) {
                 setHabitos(updatedHabitos);
-                // Sync updates to Supabase
                 for (const habito of updatedHabitos) {
                     const original = habitos.find(h => h.id === habito.id);
                     if (original && original.racha !== habito.racha) {
@@ -128,6 +167,28 @@ export const useLifeOS = () => {
                             .eq('id', habito.id);
                     }
                 }
+            }
+
+            // Award XP for vice streaks (only when racha actually changed)
+            if (totalViceXP > 0) {
+                const { data: profile } = await supabase
+                    .from('perfil_jugador')
+                    .select('*')
+                    .single();
+
+                if (profile) {
+                    const newXP = profile.xp + totalViceXP;
+                    const newLevel = Math.floor(newXP / 100) + 1;
+
+                    await supabase
+                        .from('perfil_jugador')
+                        .update({ xp: newXP, nivel: newLevel })
+                        .eq('id', profile.id);
+                }
+
+                // Expose earned XP info for UI notification
+                const diasTotales = viciosConXP.reduce((sum, v) => sum + v.dias, 0);
+                setViceXPInfo({ totalXP: totalViceXP, dias: diasTotales, timestamp: Date.now() });
             }
         };
 
@@ -298,36 +359,29 @@ export const useLifeOS = () => {
         const habito = habitos.find(h => h.id === id);
         if (!habito || habito.tipo !== 'construir') return;
 
-        // 1. OBTENER FECHAS
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // 1. OBTENER FECHAS (timezone-safe: usa hora local, no UTC)
+        const todayString = getLocalDateString();
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayString = getLocalDateString(yesterday);
 
-        // Parsear fecha existente
-        let lastDate = null;
-        if (habito.ultima_fecha) {
-            const dateStr = habito.ultima_fecha.split('T')[0];
-            lastDate = new Date(dateStr + "T00:00:00");
-            lastDate.setHours(0, 0, 0, 0);
-        }
+        // Parsear ultima_fecha como string puro YYYY-MM-DD
+        const lastDateStr = habito.ultima_fecha ? habito.ultima_fecha.split('T')[0] : null;
 
         // 2. CALCULAR DIFERENCIA EN DÍAS
         let diffInDays = null;
-        if (lastDate) {
-            const diffTime = today.getTime() - lastDate.getTime();
-            diffInDays = Math.round(diffTime / (1000 * 3600 * 24));
+        if (lastDateStr) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const lastDate = new Date(lastDateStr + 'T00:00:00');
+            lastDate.setHours(0, 0, 0, 0);
+            diffInDays = Math.round((today.getTime() - lastDate.getTime()) / (1000 * 3600 * 24));
         }
 
         // 3. DETERMINAR LA NUEVA RACHA
         const currentVal = Number(habito.racha || 0);
         let nuevaRacha;
         let nuevaFecha;
-
-        const todayString = today.toISOString().split('T')[0];
-
-        // CALCULAR AYER (Para no perder la memoria al desmarcar)
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayString = yesterday.toISOString().split('T')[0];
 
         // Determine if this is marking or unmarking
         const isUnmarking = diffInDays === 0;
@@ -449,8 +503,8 @@ export const useLifeOS = () => {
             console.log(`✅ Relapse logged: ${habito.nombre}, streak lost: ${rachaActual} days`, insertData);
         }
 
-        // STEP 2: Reset the habit
-        const nuevaFechaInicio = new Date().toISOString();
+        // STEP 2: Reset the habit (timezone-safe: store local date)
+        const nuevaFechaInicio = getLocalDateString();
 
         try {
             const { error } = await supabase
@@ -546,11 +600,11 @@ export const useLifeOS = () => {
         };
     }, [fechaNacimiento]);
 
-    // Check if habit is marked today
+    // Check if habit is marked today (string comparison, timezone-safe)
     const estaCompletadoHoy = useCallback((id) => {
         const habito = habitos.find(h => h.id === id);
         if (!habito || habito.tipo !== 'construir' || !habito.ultima_fecha) return false;
-        return isToday(parseISO(habito.ultima_fecha));
+        return habito.ultima_fecha.split('T')[0] === getLocalDateString();
     }, [habitos]);
 
     // Format date in Spanish
@@ -566,6 +620,7 @@ export const useLifeOS = () => {
         fechaNacimiento,
         loading,
         error,
+        viceXPInfo,
         agregarHabito,
         agregarMeta,
         actualizarHabito,

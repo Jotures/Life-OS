@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
+// Helper: fecha local YYYY-MM-DD sin conversión a UTC
+const getLocalDateString = (date = new Date()) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
+
 const HabitHeatmap = ({ habitId, streak }) => {
     const [history, setHistory] = useState(new Set());
     const [last14Days, setLast14Days] = useState([]);
@@ -11,13 +19,13 @@ const HabitHeatmap = ({ habitId, streak }) => {
             try {
                 setLoading(true);
 
-                // 1. Calculate date range (Last 14 days)
+                // 1. Calculate date range (Last 14 days) - timezone-safe
                 const today = new Date();
                 const dates = [];
                 for (let i = 13; i >= 0; i--) {
                     const d = new Date(today);
                     d.setDate(d.getDate() - i);
-                    dates.push(d.toISOString().split('T')[0]); // YYYY-MM-DD
+                    dates.push(getLocalDateString(d));
                 }
                 setLast14Days(dates);
 

@@ -7,12 +7,8 @@ import {
     PolarAngleAxis,
     PolarRadiusAxis,
     Radar,
-    AreaChart,
-    Area,
     BarChart,
     Bar,
-    LineChart,
-    Line,
     XAxis,
     YAxis,
     Tooltip,
@@ -180,10 +176,10 @@ const AnalyticsDashboard = ({ habitos = [], vicios = [], metas = [], profile }) 
     };
 
     // Calculate stats - handle both possible property names
-    const totalHabits = habitos.length;
+    const totalHabits = habitos.length + vicios.length;
     const totalXP = profile?.xp_total || profile?.xp || 0;
     const currentLevel = profile?.nivel || profile?.level || 1;
-    const maxStreak = habitos.reduce((max, h) => Math.max(max, h.racha || 0), 0);
+    const maxStreak = [...habitos, ...vicios].reduce((max, h) => Math.max(max, h.racha || 0), 0);
 
     const radarData = getRadarData();
     const needsMoreGoals = metas.length > 0 && metas.length < 3;
@@ -247,28 +243,32 @@ const AnalyticsDashboard = ({ habitos = [], vicios = [], metas = [], profile }) 
                         Cargando...
                     </div>
                 ) : (
-                    <ResponsiveContainer width="100%" height={180}>
-                        <AreaChart data={activityData}>
+                    <ResponsiveContainer width="100%" height={200}>
+                        <BarChart data={activityData} barCategoryGap="20%">
                             <defs>
-                                <linearGradient id="colorCompletados" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
-                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#818cf8" stopOpacity={1} />
+                                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0.6} />
                                 </linearGradient>
                             </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
                             <XAxis
                                 dataKey="date"
                                 tick={{ fill: '#71717a', fontSize: 10 }}
                                 axisLine={{ stroke: '#3f3f46' }}
                                 tickLine={false}
+                                interval={1}
                             />
                             <YAxis
                                 tick={{ fill: '#71717a', fontSize: 10 }}
                                 axisLine={false}
                                 tickLine={false}
-                                width={25}
+                                width={20}
                                 allowDecimals={false}
+                                domain={[0, 'dataMax + 1']}
                             />
                             <Tooltip
+                                cursor={{ fill: 'rgba(99, 102, 241, 0.08)' }}
                                 contentStyle={{
                                     backgroundColor: '#18181b',
                                     border: '1px solid #3f3f46',
@@ -278,15 +278,13 @@ const AnalyticsDashboard = ({ habitos = [], vicios = [], metas = [], profile }) 
                                 labelStyle={{ color: '#a1a1aa' }}
                                 formatter={(value) => [value, 'Completados']}
                             />
-                            <Area
-                                type="monotone"
+                            <Bar
                                 dataKey="completados"
-                                stroke="#6366f1"
-                                strokeWidth={2}
-                                fillOpacity={1}
-                                fill="url(#colorCompletados)"
+                                fill="url(#barGradient)"
+                                radius={[4, 4, 0, 0]}
+                                maxBarSize={28}
                             />
-                        </AreaChart>
+                        </BarChart>
                     </ResponsiveContainer>
                 )}
             </div>
@@ -467,53 +465,57 @@ const AnalyticsDashboard = ({ habitos = [], vicios = [], metas = [], profile }) 
                                 Cargando...
                             </div>
                         ) : streakEvolution.length >= 2 ? (
-                            <ResponsiveContainer width="100%" height={180}>
-                                <LineChart data={streakEvolution}>
+                            <ResponsiveContainer width="100%" height={200}>
+                                <BarChart data={streakEvolution} barCategoryGap="15%">
                                     <defs>
-                                        <linearGradient id="colorStreak" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                        <linearGradient id="streakBarGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+                                            <stop offset="100%" stopColor="#10b981" stopOpacity={0.4} />
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" vertical={false} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
                                     <XAxis
                                         dataKey="fecha"
                                         tick={{ fill: '#71717a', fontSize: 10 }}
                                         axisLine={{ stroke: '#3f3f46' }}
                                         tickLine={false}
+                                        interval={0}
+                                        angle={-35}
+                                        textAnchor="end"
+                                        height={45}
                                     />
                                     <YAxis
                                         tick={{ fill: '#71717a', fontSize: 10 }}
                                         axisLine={false}
                                         tickLine={false}
-                                        width={30}
+                                        width={25}
                                         allowDecimals={false}
+                                        domain={[0, 'dataMax + 1']}
                                         label={{
                                             value: 'Días',
                                             angle: -90,
                                             position: 'insideLeft',
-                                            fill: '#71717a',
+                                            fill: '#52525b',
                                             fontSize: 10
                                         }}
                                     />
                                     <Tooltip
+                                        cursor={{ fill: 'rgba(16, 185, 129, 0.06)' }}
                                         contentStyle={{
                                             backgroundColor: '#18181b',
                                             border: '1px solid #3f3f46',
                                             borderRadius: '8px',
                                             color: '#fafafa'
                                         }}
-                                        formatter={(value) => [`${value} días`, 'Racha perdida']}
+                                        formatter={(value) => [`${value} días de racha`, 'Antes de recaer']}
                                     />
-                                    <Line
-                                        type="monotone"
+                                    <Bar
                                         dataKey="racha"
-                                        stroke="#10b981"
-                                        strokeWidth={2}
-                                        dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
-                                        activeDot={{ r: 6, fill: '#10b981' }}
+                                        fill="url(#streakBarGradient)"
+                                        radius={[4, 4, 0, 0]}
+                                        maxBarSize={32}
                                     />
-                                </LineChart>
+                                </BarChart>
                             </ResponsiveContainer>
                         ) : (
                             <div className="h-32 flex flex-col items-center justify-center text-zinc-500 bg-zinc-800/30 rounded-lg">
