@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
     format,
     parseISO,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '../supabaseClient';
+import { calcLevel } from '../utils/rpg';
 
 // Helper: fecha local YYYY-MM-DD sin conversión a UTC
 const getLocalDateString = (date = new Date()) => {
@@ -15,6 +16,7 @@ const getLocalDateString = (date = new Date()) => {
 };
 
 const FECHA_NACIMIENTO_KEY = 'life-os-fecha-nacimiento';
+const LAST_PROCESS_KEY = 'life-os-last-process';
 
 const getStoredFechaNacimiento = () => {
     try {
@@ -32,6 +34,12 @@ export const useLifeOS = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [viceXPInfo, setViceXPInfo] = useState(null);
+    const habitosRef = useRef([]);
+
+    // Keep ref in sync so setInterval always reads fresh data
+    useEffect(() => {
+        habitosRef.current = habitos;
+    }, [habitos]);
 
     // Fetch habits and goals from Supabase on mount
     useEffect(() => {
@@ -89,23 +97,32 @@ export const useLifeOS = () => {
 
     // Process habits on mount and when date changes
     // Includes passive XP for vices — awards XP when racha increments (day change)
+    // FIX: Uses habitosRef to avoid stale closure + localStorage guard to run 1x/day
     useEffect(() => {
         const XP_POR_DIA_VICIO = 10;
 
         const processHabits = async () => {
+            // Guard: only process once per calendar day
+            const todayStr = getLocalDateString();
+            const lastProcessed = localStorage.getItem(LAST_PROCESS_KEY);
+            if (lastProcessed === todayStr) return;
+
+            // Read fresh data from ref (avoids stale closure)
+            const currentHabitos = habitosRef.current;
+            if (currentHabitos.length === 0) return;
+
             let updated = false;
             const updatedHabitos = [];
             let totalViceXP = 0;
             const viciosConXP = [];
 
-            const todayStr = getLocalDateString();
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
             const yesterdayStr = getLocalDateString(yesterday);
 
-            for (const habito of habitos) {
+            for (const habito of currentHabitos) {
                 if (habito.tipo === 'construir') {
-                    // Reset streak if yesterday wasn't marked (string comparison, timezone-safe)
+                    // Reset streak if yesterday wasn't marked
                     if (habito.ultima_fecha) {
                         const lastDateStr = habito.ultima_fecha.split('T')[0];
                         if (lastDateStr !== todayStr && lastDateStr !== yesterdayStr) {
@@ -117,7 +134,7 @@ export const useLifeOS = () => {
                         }
                     }
                 } else if (habito.tipo === 'dejar') {
-                    // Calculate days since start (timezone-safe)
+                    // Calculate days since start
                     const fechaInicioStr = habito.fecha_inicio.split('T')[0];
                     const fechaInicio = new Date(fechaInicioStr + 'T00:00:00');
                     const today = new Date();
@@ -158,18 +175,18 @@ export const useLifeOS = () => {
 
             if (updated) {
                 setHabitos(updatedHabitos);
-                for (const habito of updatedHabitos) {
-                    const original = habitos.find(h => h.id === habito.id);
-                    if (original && original.racha !== habito.racha) {
-                        await supabase
-                            .from('habitos')
-                            .update({ racha: habito.racha })
-                            .eq('id', habito.id);
-                    }
-                }
+                // Batch update streaks to Supabase
+                await Promise.all(
+                    updatedHabitos
+                        .filter(h => {
+                            const original = currentHabitos.find(o => o.id === h.id);
+                            return original && original.racha !== h.racha;
+                        })
+                        .map(h => supabase.from('habitos').update({ racha: h.racha }).eq('id', h.id))
+                );
             }
 
-            // Award XP for vice streaks (only when racha actually changed)
+            // Award XP for vice streaks
             if (totalViceXP > 0) {
                 const { data: profile } = await supabase
                     .from('perfil_jugador')
@@ -178,7 +195,7 @@ export const useLifeOS = () => {
 
                 if (profile) {
                     const newXP = profile.xp + totalViceXP;
-                    const newLevel = Math.floor(newXP / 100) + 1;
+                    const newLevel = calcLevel(newXP);
 
                     await supabase
                         .from('perfil_jugador')
@@ -186,28 +203,32 @@ export const useLifeOS = () => {
                         .eq('id', profile.id);
                 }
 
-                // Expose earned XP info for UI notification
                 const diasTotales = viciosConXP.reduce((sum, v) => sum + v.dias, 0);
                 setViceXPInfo({ totalXP: totalViceXP, dias: diasTotales, timestamp: Date.now() });
             }
+
+            // Mark today as processed
+            localStorage.setItem(LAST_PROCESS_KEY, todayStr);
         };
 
         if (habitos.length > 0) {
             processHabits();
         }
 
-        // Check every minute for date changes
+        // Check every minute for date changes (new day rollover)
         const interval = setInterval(processHabits, 60000);
         return () => clearInterval(interval);
-    }, [habitos.length]); // Only run when habitos are loaded
+    }, [habitos.length]);
 
     // Add a new habit
     const agregarHabito = useCallback(async (nombre, tipo, metaId = null) => {
+        const ahora = new Date().toISOString();
         const nuevoHabito = {
             nombre: nombre.trim(),
             racha: 0,
             ultima_fecha: null,
-            fecha_inicio: new Date().toISOString(),
+            fecha_inicio: ahora,
+            ultima_recompensa: tipo === 'dejar' ? ahora : null,
             tipo,
             meta_id: metaId || null
         };
@@ -228,7 +249,7 @@ export const useLifeOS = () => {
             setHabitos(prev => [...prev, habitoConMeta]);
         } catch (err) {
             console.error('Error adding habito:', err);
-            alert("ERROR SUPABASE: " + err.message);
+            console.error('Error Supabase:', err.message);
             setError(err.message);
         }
     }, [metas]);
@@ -257,7 +278,7 @@ export const useLifeOS = () => {
             return data;
         } catch (err) {
             console.error('Error adding meta:', err);
-            alert("ERROR SUPABASE: " + err.message);
+            console.error('Error Supabase:', err.message);
             setError(err.message);
             return null;
         }
@@ -280,7 +301,7 @@ export const useLifeOS = () => {
             ));
         } catch (err) {
             console.error('Error updating habito:', err);
-            alert("ERROR SUPABASE: " + err.message);
+            console.error('Error Supabase:', err.message);
             setError(err.message);
         }
     }, [metas]);
@@ -304,7 +325,7 @@ export const useLifeOS = () => {
             ));
         } catch (err) {
             console.error('Error updating meta:', err);
-            alert("ERROR SUPABASE: " + err.message);
+            console.error('Error Supabase:', err.message);
             setError(err.message);
         }
     }, []);
@@ -333,7 +354,7 @@ export const useLifeOS = () => {
             ));
         } catch (err) {
             console.error('Error deleting meta:', err);
-            alert("ERROR SUPABASE: " + err.message);
+            console.error('Error Supabase:', err.message);
             setError(err.message);
         }
     }, []);
@@ -404,7 +425,7 @@ export const useLifeOS = () => {
             nuevaFecha = todayString;
         }
 
-        console.log(`Debug: RachaBD=${currentVal}, Diff=${diffInDays}, Nueva=${nuevaRacha}, Fecha=${nuevaFecha}`);
+
 
         // 4. ACTUALIZAR ESTADO LOCAL (Optimista)
         setHabitos(prev => prev.map(h =>
@@ -454,8 +475,7 @@ export const useLifeOS = () => {
             } else if (profile) {
                 // Calculate new XP (minimum 0)
                 const newXP = Math.max(0, profile.xp + xpChange);
-                // Level formula: Floor(XP / 100) + 1
-                const newLevel = Math.floor(newXP / 100) + 1;
+                const newLevel = calcLevel(newXP);
 
                 // Update profile in DB
                 const { error: updateError } = await supabase
@@ -533,7 +553,7 @@ export const useLifeOS = () => {
                 // PROGRESSIVE PENALTY: The higher the level, the harder the fall.
                 const penalty = 50 * (profile.nivel || 1);
                 const newXP = Math.max(0, profile.xp - penalty);
-                const newLevel = Math.floor(newXP / 100) + 1;
+                const newLevel = calcLevel(newXP);
 
                 console.log(`Hardcore Punishment: Level ${profile.nivel} -> Penalty -${penalty} XP`);
 

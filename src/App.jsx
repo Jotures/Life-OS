@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Target, ShieldOff, Zap, Flag, Clock, BarChart3, LayoutGrid, ShoppingBag } from 'lucide-react';
 import { useLifeOS } from './hooks/useLifeOS';
 import { supabase } from './supabaseClient';
+import { calcLevel } from './utils/rpg';
 import confetti from 'canvas-confetti';
 import Header from './components/Header';
 import HabitCard from './components/HabitCard';
@@ -146,7 +147,7 @@ function App() {
         // Award XP to player profile
         if (playerProfile) {
             const newXP = playerProfile.xp + xpReward;
-            const newLevel = Math.floor(newXP / 100) + 1;
+            const newLevel = calcLevel(newXP);
 
             await supabase
                 .from('perfil_jugador')
