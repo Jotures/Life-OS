@@ -230,16 +230,17 @@ function App() {
                                 </p>
                             ) : (
                                 <div className="space-y-2">
-                                    {habitosConstruir.map(habito => (
-                                        <HabitCard
-                                            key={habito.id}
-                                            habito={habito}
-                                            completadoHoy={estaCompletadoHoy(habito.id)}
-                                            onMarcar={() => handleMarcarHabito(habito.id)}
-                                            onEdit={() => setHabitToEdit(habito)}
-                                            onEliminar={() => setHabitToDelete({ id: habito.id, nombre: habito.nombre, tipo: habito.tipo })}
-                                        />
-                                    ))}
+                                     {habitosConstruir.map(habito => (
+                                         <HabitCard
+                                             key={habito.id}
+                                             habito={habito}
+                                             completadoHoy={estaCompletadoHoy(habito.id)}
+                                             onMarcar={() => handleMarcarHabito(habito.id)}
+                                             onEdit={() => setHabitToEdit(habito)}
+                                             onEliminar={() => setHabitToDelete({ id: habito.id, nombre: habito.nombre, tipo: habito.tipo })}
+                                             onUpdate={actualizarHabito}
+                                         />
+                                     ))}
                                 </div>
                             )}
                         </section>

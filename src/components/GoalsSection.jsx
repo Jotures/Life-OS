@@ -95,6 +95,7 @@ const GoalsSection = ({
                                 linkedHabitsCount={getLinkedHabitsCount(vital.id)}
                                 calculatedValue={getVitalHealth(vital.id)}
                                 onEdit={() => onEditMeta(vital)}
+                                onUpdate={onUpdateMeta}
                             />
                         ))}
                     </div>
@@ -128,6 +129,7 @@ const GoalsSection = ({
                                 onProgress={handleQuestProgress}
                                 onComplete={handleQuestComplete}
                                 onEdit={() => onEditMeta(quest)}
+                                onUpdate={onUpdateMeta}
                             />
                         ))}
                     </div>
